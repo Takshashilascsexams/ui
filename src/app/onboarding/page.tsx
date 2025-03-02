@@ -142,13 +142,13 @@ export default function OnboardingComponent() {
   return (
     <div className="w-full h-full flex items-center justify-center">
       <div className="w-full md:w-[600px] mt-12 mb-12 py-5 px-8 flex flex-col items-center justify-center gap-10 md:border-[1px] md:border-slate-300 md:rounded-md md:shadow-lg">
-        <div className="w-[120px] h-[120px] lg:w-[160px] lg:h-[160px] relative">
+        <div className="w-[140px] h-[140px] lg:w-[160px] lg:h-[160px] relative">
           <Image
             src={"/images/logo.webp"}
             alt="logo"
             fill
             priority
-            sizes="(max-width: 768px) 120px, (min-width: 769px) 160px"
+            sizes="(max-width: 768px) 140px, (min-width: 769px) 160px"
             style={{ objectFit: "contain" }}
           />
         </div>
