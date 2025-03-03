@@ -1,12 +1,9 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { connectDB } from "@/lib/connectDB";
 import { OnboardingDataType } from "@/types/dataTypes";
 
 export const addUserToDb = async (onboardingData: OnboardingDataType) => {
-  connectDB();
-
   const { userId } = await auth();
 
   if (!userId) {
@@ -42,5 +39,5 @@ export const addUserToDb = async (onboardingData: OnboardingDataType) => {
     throw new Error("Failed to add user to database");
   }
 
-  return { message: "User was successfully to database" };
+  return { message: "User was successfully added to database" };
 };
