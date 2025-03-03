@@ -524,7 +524,7 @@ export default function OnboardingComponent() {
               {isSubmittingForm ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  loading
+                  onboarding
                 </>
               ) : (
                 "Continue"
