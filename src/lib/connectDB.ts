@@ -8,7 +8,6 @@ export const connectDB = async () => {
     if (connection.readyState === 1) {
       return Promise.resolve(true);
     }
-    console.log("Connected to database.");
   } catch (error) {
     console.error(error);
     return Promise.reject(error);

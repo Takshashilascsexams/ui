@@ -5,10 +5,14 @@ import {
 } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher(["/sign-in", "/sign-up"]);
+const isPublicRoute = createRouteMatcher([
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+]);
 const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
-const isPrivateRoute = createRouteMatcher(["/", "/profile"]);
-const isAdminRoute = createRouteMatcher(["/dashboard"]);
+const isPrivateRoute = createRouteMatcher(["/dashboard"]);
+const isAdminRoute = createRouteMatcher(["/admin"]);
 
 const BASE_URL = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
@@ -22,7 +26,7 @@ export default clerkMiddleware(async (auth, req) => {
   // If the user is signed in and accessing public route
   // redirect to dashboard
   if (userId && isPublicRoute(req)) {
-    return NextResponse.redirect(`${BASE_URL}`);
+    return NextResponse.redirect(`${BASE_URL}/dashboard`);
   }
 
   // If the user isn't signed in and accessing private route,
@@ -35,7 +39,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (userId && isOnboardingRoute(req)) {
     // Check if onboarding is already complete
     if (sessionClaims?.metadata?.onboardingComplete) {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     return NextResponse.next();
@@ -43,7 +47,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Restrict admin routes to users with specific permissions
   if (isAdminRoute(req) && currentUser?.publicMetadata?.role !== "Admin") {
-    return NextResponse.redirect(`${BASE_URL}`);
+    return NextResponse.redirect(`${BASE_URL}/dashboard`);
   }
 
   // Check for bypass flag before redirecting to onboarding
