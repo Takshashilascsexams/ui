@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
-import CustomImage from "../customImage/customImage";
+import CustomImage from "../custom_image/custom_image";
 import { UserRound, Settings, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

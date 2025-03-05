@@ -1,17 +1,14 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/app_sidebar/app_sidebar";
+import DashboardHeader from "@/components/dashboard_header/dashboard_header";
+import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export default async function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { userId } = await auth();
-
-  const currentUser = userId
-    ? await (await clerkClient()).users.getUser(userId)
-    : null;
+  const currentUser = await getCurrentUser();
 
   return (
     <SidebarProvider>
@@ -19,7 +16,10 @@ export default async function Layout({
         avatar={(currentUser?.imageUrl as string) || "/images/avatar.webp"}
         fullName={(currentUser?.publicMetadata?.fullName as string) || "user"}
       />
-      <main className="flex-1 h-screen overflow-hidden">{children}</main>
+      <main className="flex-1 h-screen overflow-hidden flex flex-col">
+        <DashboardHeader />
+        {children}
+      </main>
     </SidebarProvider>
   );
 }

@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+// import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
-  ChevronUp,
   UserRound,
   CircleUserRound,
   LogOut,
   Settings,
+  ChevronRight,
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuGroup,
-  DropdownMenuSeparator,
+  // DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 
 type AppSidebarFooterPropType = {
@@ -40,14 +40,14 @@ export function AppSidebarFooter({ fullName }: AppSidebarFooterPropType) {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="">
+              <SidebarMenuButton>
                 <CircleUserRound />
                 {username}
-                <ChevronUp className="ml-auto" />
+                <ChevronRight className="ml-auto" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              side="top"
+              side="right"
               className="w-[--radix-popper-anchor-width]"
             >
               <DropdownMenuGroup>
@@ -73,11 +73,11 @@ export function AppSidebarFooter({ fullName }: AppSidebarFooterPropType) {
           </DropdownMenu>
         </SidebarMenuItem>
 
-        <DropdownMenuSeparator className="bg-slate-200" />
+        {/* <DropdownMenuSeparator className="bg-slate-200" />
 
         <SidebarMenuItem className="flex items-center justify-end">
           <SidebarTrigger />
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
       </SidebarMenu>
     </SidebarFooter>
   );

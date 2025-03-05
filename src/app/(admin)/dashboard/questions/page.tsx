@@ -1,3 +1,16 @@
+import Link from "next/link";
+import BreadcrumbsHolder from "@/components/breadcrumbs-holder/breadcrumbs-holder";
+
 export default function Page() {
-  return <div>questions page</div>;
+  return (
+    <div className="w-full h-[200vh] overflow-y-scroll">
+      <BreadcrumbsHolder />
+      <Link
+        href={"/dashboard/questions/add-question"}
+        className="px-4 py-2 bg-customButtonBg rounded-md text-white"
+      >
+        Add questions
+      </Link>
+    </div>
+  );
 }
