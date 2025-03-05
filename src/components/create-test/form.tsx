@@ -25,26 +25,18 @@ import {
 
 const addNewTestFormSchema = z.object({
   title: z.string().min(6, {
-    message: "Title name must be at least 6 characters.",
+    message: "Test title / subject must be at least 6 characters.",
   }),
   description: z.string().min(10, {
-    message: "Description must be at least 6 characters.",
+    message: "Description must be at least 10 characters.",
   }),
-  totalQuestions: z.number({
-    message: "Each test must consist atleast 10 questions.",
-  }),
-  duration: z.number({
-    message: "Duration for each test must be atleast 30 mins.",
-  }),
-  totalMarks: z.number({
-    message: "Total marks for a test cannot be less than 30",
-  }),
+  totalQuestions: z.string(),
+  duration: z.string(),
+  totalMarks: z.string(),
   hasNegativeMarking: z.enum(["Yes", "No"], {
     message: "Invalid option selection.",
   }),
-  passMark: z.number({
-    message: "Pass mark should not be less than 30% of total marks.",
-  }),
+  passMark: z.string(),
 });
 
 export default function CreateTestForm() {
@@ -56,16 +48,26 @@ export default function CreateTestForm() {
     defaultValues: {
       title: "",
       description: "",
-      totalQuestions: undefined,
-      duration: undefined,
-      totalMarks: undefined,
+      totalQuestions: "",
+      duration: "",
+      totalMarks: "",
       hasNegativeMarking: undefined,
-      passMark: undefined,
+      passMark: "",
     },
   });
 
   const onSubmit = async (values: z.infer<typeof addNewTestFormSchema>) => {
-    console.log(values);
+    try {
+      setIsSubmittingForm(true);
+      setError("");
+
+      console.log(values);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || "Failed to create a new test.");
+    } finally {
+      setIsSubmittingForm(false);
+    }
   };
 
   return (
@@ -126,7 +128,12 @@ export default function CreateTestForm() {
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="10" className="text-sm" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="10"
+                    className="text-sm"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -143,7 +150,12 @@ export default function CreateTestForm() {
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="60" className="text-sm" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="60"
+                    className="text-sm"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -160,7 +172,12 @@ export default function CreateTestForm() {
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="100" className="text-sm" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="100"
+                    className="text-sm"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,7 +227,12 @@ export default function CreateTestForm() {
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="30" className="text-sm" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="30"
+                    className="text-sm"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
