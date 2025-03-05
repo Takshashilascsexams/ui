@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -7,6 +5,7 @@ import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -61,9 +60,13 @@ export default function CreateTestForm() {
       setIsSubmittingForm(true);
       setError("");
 
+      throw new Error("error");
+
       console.log(values);
+      toast.success("A new test has been created");
     } catch (error) {
       console.log(error);
+      toast.error("Uh oh! Something went wrong.");
       setError((error as Error).message || "Failed to create a new test.");
     } finally {
       setIsSubmittingForm(false);

@@ -1,4 +1,5 @@
 import Header from "@/components/header/header";
+import Footer from "@/components/footer/footer";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export default async function Layout({
@@ -15,6 +16,7 @@ export default async function Layout({
         fullName={(currentUser?.publicMetadata?.fullName as string) || "user"}
       />
       {children}
+      <Footer />
     </>
   );
 }

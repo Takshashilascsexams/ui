@@ -51,3 +51,66 @@ export const districts = [
   "Udalguri",
   "West Karbi Anglong",
 ];
+
+export const testSeriesSectionData = [
+  {
+    id: 0,
+    title: "Assam History",
+    description: "Prepare for your exams with our exclusive test series",
+    href: "#",
+  },
+  {
+    id: 1,
+    title: "Indian Geography",
+    description: "Get access to the best test series for your preparation",
+    href: "#",
+  },
+  {
+    id: 2,
+    title: "Indian Economy",
+    description: "Prepare for your exams with our exclusive test series",
+    href: "#",
+  },
+];
+
+export const latestBlogsSectionData = [
+  {
+    id: 0,
+    title: "Improving Answer Writing Skills for UPSC Mains Exam.",
+    description: "Learn the best strategies to excel in your exam.",
+    href: "#",
+  },
+  {
+    id: 1,
+    title: "Effective Strategies for UPSC Preparaion",
+    description: "Get access to the best test series for your preparation",
+    href: "#",
+  },
+  {
+    id: 2,
+    title: "Time Management Tips",
+    description: "Discover how to manage your time effectively during exams",
+    href: "#",
+  },
+];
+
+export const currentAffairsSectionData = [
+  {
+    id: 0,
+    title: "Important News Updates",
+    description: "Stay updated with the latest current affairs",
+    href: "#",
+  },
+  {
+    id: 1,
+    title: "Weekly News Digest",
+    description: "Get a summary of the most important news of the week",
+    href: "#",
+  },
+  {
+    id: 2,
+    title: "Important News Updates",
+    description: "Stay updated with the latest current affairs",
+    href: "#",
+  },
+];
