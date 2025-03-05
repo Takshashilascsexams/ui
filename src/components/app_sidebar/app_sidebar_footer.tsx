@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
-// import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   UserRound,
   CircleUserRound,
   LogOut,
   Settings,
-  ChevronRight,
+  ChevronUp,
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -22,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuGroup,
-  // DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 
 type AppSidebarFooterPropType = {
@@ -43,11 +41,11 @@ export function AppSidebarFooter({ fullName }: AppSidebarFooterPropType) {
               <SidebarMenuButton>
                 <CircleUserRound />
                 {username}
-                <ChevronRight className="ml-auto" />
+                <ChevronUp className="ml-auto" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              side="right"
+              side="top"
               className="w-[--radix-popper-anchor-width]"
             >
               <DropdownMenuGroup>

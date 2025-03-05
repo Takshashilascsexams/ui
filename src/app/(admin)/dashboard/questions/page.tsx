@@ -3,7 +3,7 @@ import BreadcrumbsHolder from "@/components/breadcrumbs-holder/breadcrumbs-holde
 
 export default function Page() {
   return (
-    <div className="w-full h-[200vh] overflow-y-scroll">
+    <div className="w-full h-full relative overflow-y-auto">
       <BreadcrumbsHolder />
       <Link
         href={"/dashboard/questions/add-question"}

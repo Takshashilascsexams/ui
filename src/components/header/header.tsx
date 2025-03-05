@@ -63,7 +63,7 @@ export default function Header({ avatar, fullName }: HeaderPropType) {
   const username = fullName.split(" ")[0].slice(0, 10);
 
   return (
-    <div className="w-full px-7 lg:px-44 py-1 flex items-center justify-between border-b-[1px] border-slate-200">
+    <div className="w-full px-7 lg:px-44 py-1 flex items-center justify-between">
       <Link
         href={"/"}
         className="w-[70px] h-[70px] lg:w-[100px] lg:h-[100px] relative"
