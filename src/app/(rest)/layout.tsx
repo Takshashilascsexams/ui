@@ -1,16 +1,12 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import Header from "@/components/header/header";
+import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export default async function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { userId } = await auth();
-
-  const currentUser = userId
-    ? await (await clerkClient()).users.getUser(userId)
-    : null;
+  const currentUser = await getCurrentUser();
 
   return (
     <>

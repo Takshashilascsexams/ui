@@ -2,9 +2,8 @@ import BreadcrumbsHolder from "@/components/breadcrumbs-holder/breadcrumbs-holde
 
 export default function Page() {
   return (
-    <div className="w-full overflow-y-scroll">
+    <div className="w-full h-[200vh] overflow-y-scroll">
       <BreadcrumbsHolder />
-      Admin
     </div>
   );
 }
