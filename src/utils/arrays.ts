@@ -78,19 +78,19 @@ export const latestBlogsSectionData = [
     id: 0,
     title: "Improving Answer Writing Skills for UPSC Mains Exam.",
     description: "Learn the best strategies to excel in your exam.",
-    href: "#",
+    href: "https://takshashilascs.com/improving-answer-writing-skills-for-upsc-mains-exam/",
   },
   {
     id: 1,
     title: "Effective Strategies for UPSC Preparaion",
     description: "Get access to the best test series for your preparation",
-    href: "#",
+    href: "https://takshashilascs.com/upsc-preparation-strategy/",
   },
   {
     id: 2,
     title: "Time Management Tips",
     description: "Discover how to manage your time effectively during exams",
-    href: "#",
+    href: "https://takshashilascs.com/time-management-tips-excelling-in-college-and-upsc-together/",
   },
 ];
 
@@ -99,18 +99,18 @@ export const currentAffairsSectionData = [
     id: 0,
     title: "Important News Updates",
     description: "Stay updated with the latest current affairs",
-    href: "#",
+    href: "https://takshashilascs.com/current-affairs/",
   },
   {
     id: 1,
     title: "Weekly News Digest",
     description: "Get a summary of the most important news of the week",
-    href: "#",
+    href: "https://takshashilascs.com/current-affairs/",
   },
   {
     id: 2,
     title: "Important News Updates",
     description: "Stay updated with the latest current affairs",
-    href: "#",
+    href: "https://takshashilascs.com/current-affairs/",
   },
 ];

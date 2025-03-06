@@ -22,13 +22,15 @@ export default function Hero() {
           Explore Exams
         </Link>
         <Link
-          href={"#"}
+          href={"https://takshashilascs.com/blogs/"}
+          target="_blank"
           className="font-medium bg-[#ffcc00] px-3 py-2 rounded-md"
         >
           Read Blogs
         </Link>
         <Link
-          href={"#"}
+          href={"https://takshashilascs.com/current-affairs/"}
+          target="_blank"
           className="font-medium bg-[#ffcc00] px-3 py-2 rounded-md"
         >
           Check Current affairs
