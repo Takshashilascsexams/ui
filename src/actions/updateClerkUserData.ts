@@ -14,6 +14,7 @@ export const updateClerkUserData = async ({
   phoneNumber,
 }: updateClerkUserDataPropType) => {
   const { userId } = await auth();
+  console.log(email, phoneNumber);
 
   if (!userId) {
     throw new Error("No Logged In User");
