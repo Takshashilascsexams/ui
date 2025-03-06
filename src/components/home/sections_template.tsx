@@ -1,6 +1,6 @@
 import { testSeriesSectionData } from "@/utils/arrays";
-import { Button } from "../ui/button";
 import { twMerge } from "tailwind-merge";
+import Link from "next/link";
 
 const colorClasses = {
   blue: "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-500",
@@ -44,11 +44,16 @@ export default function SectionsTemplate({
                 <p className="text-sm lg:text-sm">{tablet.description}</p>
               </div>
               <div>
-                <Button
-                  className={twMerge("text-white", colorClasses[buttonColor])}
+                <Link
+                  href={tablet.href}
+                  target="_blank"
+                  className={twMerge(
+                    "px-4 py-2 text-sm text-white font-medium rounded-md",
+                    colorClasses[buttonColor]
+                  )}
                 >
                   {buttonTitle}
-                </Button>
+                </Link>
               </div>
             </div>
           );
