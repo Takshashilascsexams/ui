@@ -1,3 +1,4 @@
+// onboarding page utils array
 export const gender = ["Male", "Female"];
 
 export const category = [
@@ -52,6 +53,7 @@ export const districts = [
   "West Karbi Anglong",
 ];
 
+// home page utils array
 export const testSeriesSectionData = [
   {
     id: 0,
@@ -112,5 +114,54 @@ export const currentAffairsSectionData = [
     title: "Important News Updates",
     description: "Stay updated with the latest current affairs",
     href: "https://takshashilascs.com/current-affairs/",
+  },
+];
+
+// create-test page utils array
+export const difficultyLevel = ["Easy", "Medium", "Hard"];
+
+export const testCategory = ["Test Series", "Screening Test", "Other"];
+
+export const negativeMarkingValue = [0, 2.5, 0.5];
+
+// create-questions utils array
+export const marks = ["1", "2"];
+
+export const questionTypes = [
+  "MCQ",
+  "MULTIPLE_SELECT",
+  "TRUE_FALSE",
+  "SHORT_ANSWER",
+  "LONG_ANSWER",
+];
+
+export const negativeMarks = ["0", "0.25", "0.5"];
+
+// create question page utils array
+export const sampleQuestions = [
+  {
+    id: 1,
+    questionText: "Which planet is known as the Red Planet?",
+    options: [
+      { optionText: "Venus", isCorrect: false },
+      { optionText: "Mars", isCorrect: true },
+      { optionText: "Jupiter", isCorrect: false },
+      { optionText: "Saturn", isCorrect: false },
+    ],
+    answer: "Mars",
+    explanation:
+      "Mars appears reddish because of iron oxide prevalent on its surface.",
+  },
+  {
+    id: 2,
+    questionText: "What is the capital of France?",
+    options: [
+      { optionText: "Paris", isCorrect: true },
+      { optionText: "London", isCorrect: false },
+      { optionText: "Berlin", isCorrect: false },
+      { optionText: "Madrid", isCorrect: false },
+    ],
+    answer: "Paris",
+    explanation: "Paris is the capital and most populous city of France.",
   },
 ];

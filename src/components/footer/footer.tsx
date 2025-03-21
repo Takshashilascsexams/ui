@@ -19,7 +19,7 @@ export default function Footer() {
         <Link href={"#"}>LinkedIn</Link>
       </div>
 
-      <div>
+      <div className="text-center">
         <span>
           <Link
             href={"https://takshashilascs.com/"}
