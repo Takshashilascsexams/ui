@@ -1,4 +1,4 @@
-import Hero from "@/components/create-test/hero";
+import Hero from "@/components/create-exam/hero";
 import BreadcrumbsHolder from "@/components/breadcrumbs-holder/breadcrumbs-holder";
 
 export default function Page() {

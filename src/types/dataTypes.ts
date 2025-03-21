@@ -12,3 +12,17 @@ export type OnboardingDataType = {
   previouslyAttempted: string;
   currentlyEmployed: string;
 };
+
+export type newExamDataType = {
+  title: string;
+  description: string;
+  duration: string;
+  totalQuestions: string;
+  totalMarks: string;
+  hasNegativeMarking: string;
+  negativeMarkingValue: string;
+  passMarkPercentage: string;
+  difficultyLevel: string;
+  category: string;
+  allowNavigation: string;
+};

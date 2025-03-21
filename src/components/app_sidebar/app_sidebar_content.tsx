@@ -17,8 +17,8 @@ const items = [
     icon: Home,
   },
   {
-    title: "Tests",
-    url: "/dashboard/tests",
+    title: "Exams",
+    url: "/dashboard/exams",
     icon: BookOpenCheck,
   },
   {
