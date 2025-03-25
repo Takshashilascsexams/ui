@@ -159,7 +159,7 @@ export default function Hero() {
             type="button"
             variant="ghost"
             disabled={!previewData}
-            className="text-indigo-600 hover:bg-white hover:text-indigo-600 absolute bottom-[-5px] right-0"
+            className="text-indigo-600 hover:bg-white hover:text-indigo-600 absolute bottom-[-20px] xl:bottom-[-5px] right-[-10px] xl:right-0"
           >
             Preview
           </Button>
