@@ -118,7 +118,7 @@ export const currentAffairsSectionData = [
 ];
 
 // create-test page utils array
-export const difficultyLevel = ["Easy", "Medium", "Hard"];
+export const difficultyLevel = ["EASY", "MEDIUM", "HARD"];
 
 export const testCategory = ["Test Series", "Screening Test", "Other"];
 
@@ -129,10 +129,11 @@ export const marks = ["1", "2"];
 
 export const questionTypes = [
   "MCQ",
-  "MULTIPLE_SELECT",
-  "TRUE_FALSE",
-  "SHORT_ANSWER",
-  "LONG_ANSWER",
+  // "MULTIPLE_SELECT",
+  // "TRUE_FALSE",
+  // "SHORT_ANSWER",
+  // "LONG_ANSWER",
+  "STATEMENT_BASED",
 ];
 
 export const negativeMarks = ["0", "0.25", "0.5"];
@@ -141,6 +142,7 @@ export const negativeMarks = ["0", "0.25", "0.5"];
 export const sampleQuestions = [
   {
     id: 1,
+    title: "Format for MCQ's",
     questionText: "Which planet is known as the Red Planet?",
     options: [
       { optionText: "Venus", isCorrect: false },
@@ -148,20 +150,53 @@ export const sampleQuestions = [
       { optionText: "Jupiter", isCorrect: false },
       { optionText: "Saturn", isCorrect: false },
     ],
-    answer: "Mars",
+    answer: "(b)",
     explanation:
       "Mars appears reddish because of iron oxide prevalent on its surface.",
+    statements: [],
+    statementInstructions: "",
   },
   {
     id: 2,
-    questionText: "What is the capital of France?",
+    title: "Format for statement based questions",
+    questionText:
+      "Consider the following statements regarding Reserve Bank of India (RBI):",
     options: [
-      { optionText: "Paris", isCorrect: true },
-      { optionText: "London", isCorrect: false },
-      { optionText: "Berlin", isCorrect: false },
-      { optionText: "Madrid", isCorrect: false },
+      { optionText: "Only one", isCorrect: false },
+      { optionText: "Only two", isCorrect: true },
+      { optionText: "Only three", isCorrect: false },
+      { optionText: "All four", isCorrect: false },
     ],
-    answer: "Paris",
-    explanation: "Paris is the capital and most populous city of France.",
+    statements: [
+      {
+        statementNumber: 1,
+        statementText:
+          "RBI was set up based on the recommendations of the Royal Commission on Indian Currency and Finance (1926), also known as the Hilton Young Commission.",
+        isCorrect: false,
+      },
+      {
+        statementNumber: 2,
+        statementText:
+          "RBI was established on April 1, 1935 in accordance with the provisions of the Reserve Bank of India Act, 1934.",
+        isCorrect: false,
+      },
+      {
+        statementNumber: 3,
+        statementText:
+          "RBI was nationalized in 1949 and since then fully owned by the Ministry of Finance under Government of India.",
+        isCorrect: false,
+      },
+      {
+        statementNumber: 4,
+        statementText:
+          "In 2016, the Government of India amended the RBI Act to establish the Monetary Policy Committee.",
+        isCorrect: false,
+      },
+    ],
+    statementInstructions: "How many of the above statements is/are correct?",
+    answer: "(c)",
+    explanation: "Because c is correct.",
   },
 ];
+
+export const correctAnswer = ["a", "b", "c", "d"];

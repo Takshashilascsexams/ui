@@ -17,7 +17,7 @@ export default function QuestionsPreviewDialog({
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent
           aria-describedby={"main"}
-          className="w-[450px] rounded-md"
+          className="w-[360px] lg:w-[700px] rounded-md"
         >
           <DialogTitle>No questions to preview</DialogTitle>
         </DialogContent>
@@ -30,7 +30,7 @@ export default function QuestionsPreviewDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         aria-describedby={"main"}
-        className="lg:max-w-[1000px] w-[450px] lg:w-[700px] h-[550px] lg:h-[650px] rounded-md overflow-y-hidden"
+        className="w-[360px] lg:w-[700px] h-[700px] lg:h-[650px] rounded-md overflow-y-hidden"
       >
         {/* header */}
         <DialogHeader className="text-left">

@@ -18,7 +18,11 @@ export default function FormatViewDialog({ children }: DialogPropType) {
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="lg:max-w-[1000px] w-[450px] lg:w-[700px] rounded-md">
+      <DialogContent
+        aria-describedby={"main"}
+        className="w-[360px] lg:w-[700px] h-[700px] lg:h-[650px] rounded-md overflow-y-hidden"
+      >
+        {/* header */}
         <DialogHeader className="text-start">
           <DialogTitle>Question Format Guide</DialogTitle>
           <DialogDescription>
@@ -26,15 +30,35 @@ export default function FormatViewDialog({ children }: DialogPropType) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="w-full">
-          <h2 className="text-base font-medium">Required Format:</h2>
+        {/* Content */}
+        <div className="w-full h-full overflow-y-scroll">
           <div className="w-full text-sm">
             {sampleQuestions.map((question) => {
               return (
-                <div key={question.id} className="mt-5">
+                <div key={question.id} className="mt-3">
+                  <h2 className="text-base font-medium mb-2">
+                    {question.title}
+                  </h2>
                   <p>
                     {question.id}. {question.questionText}
                   </p>
+
+                  {/* statements holder */}
+                  <div className="mt-2">
+                    <ul>
+                      {question.statements.map((statement) => {
+                        return (
+                          <li key={statement.statementNumber}>
+                            ({statement.statementNumber}){" "}
+                            {statement.statementText}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="mt-2">{question.statementInstructions}</p>
+                  </div>
+
+                  {/* options holder */}
                   <div className="mt-2 mb-2">
                     <ul>
                       {question.options.map((option, index) => {
