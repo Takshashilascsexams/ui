@@ -124,7 +124,7 @@ export default function CreateExamForm() {
       hasNegativeMarking: "No",
       negativeMarkingValue: "0",
       passMarkPercentage: "",
-      difficultyLevel: "Easy",
+      difficultyLevel: difficultyLevel[1],
       category: testCategory[0],
       allowNavigation: "No",
     },
