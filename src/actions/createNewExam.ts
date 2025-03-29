@@ -19,5 +19,5 @@ export const createNewExam = async (examData: newExamDataType) => {
 
   const response = await fetch(URI, body);
   const data = await response.json();
-  console.log(data);
+  return data;
 };

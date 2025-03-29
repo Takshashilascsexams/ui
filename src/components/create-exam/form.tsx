@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLevel, testCategory } from "@/utils/arrays";
 import { createNewExam } from "@/actions/createNewExam";
+import { revalidateTestSeries } from "@/actions/fetchTestSeries";
 import {
   Form,
   FormControl,
@@ -138,6 +139,9 @@ export default function CreateExamForm() {
       await createNewExam(values);
       form.reset();
       toast.success("A new test has been created");
+
+      // Revalidate the test series data after creation
+      await revalidateTestSeries();
     } catch (error) {
       console.log(error);
       toast.error("Uh oh! Something went wrong.");
