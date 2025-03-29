@@ -120,7 +120,12 @@ export const currentAffairsSectionData = [
 // create-test page utils array
 export const difficultyLevel = ["EASY", "MEDIUM", "HARD"];
 
-export const testCategory = ["Test Series", "Screening Test", "Other"];
+export const testCategory = [
+  "TEST SERIES",
+  "SCREENING TEST",
+  "SCHOLARSHIP TEST",
+  "OTHER",
+];
 
 export const negativeMarkingValue = [0, 2.5, 0.5];
 
