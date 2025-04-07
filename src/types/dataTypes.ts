@@ -25,4 +25,9 @@ export type newExamDataType = {
   difficultyLevel: string;
   category: string;
   allowNavigation: string;
+  isFeatured: string;
+  isPremium: string;
+  price: string;
+  discountPrice: string;
+  accessPeriod: string;
 };

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import previewBulkQuestionsUpload from "@/actions/previewBulkQuestionsUpload";
+import previewBulkQuestionsUpload from "@/actions/server/previewBulkQuestionsUpload";
 import { PreviewDataType } from "./hero";
 import { marks, difficultyLevel, negativeMarks } from "@/utils/arrays";
 import axiosInstance from "@/lib/axoisInstance";

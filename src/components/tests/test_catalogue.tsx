@@ -42,21 +42,26 @@ export default function ExamCatalogueClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Initialize state from URL parameters
+  // Initialize state client-side only after component mounts
   useEffect(() => {
-    // Get page from URL if available
-    const page = parseInt(getQueryParam("page") || "1", 10);
-    setCurrentPage(page);
-
     // Apply initial filters
     const filtered = applyFilters(exams, activeCategory, searchQuery);
     setFilteredExams(filtered);
     setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+
+    // Get page from URL if available (client-side only)
+    const pageParam = getQueryParam("page");
+    if (pageParam) {
+      const page = parseInt(pageParam, 10);
+      setCurrentPage(isNaN(page) ? 1 : page);
+    }
   }, [exams, activeCategory, searchQuery]);
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
+    setSearchQuery("");
+
     const filtered = applyFilters(exams, category, searchQuery);
     setFilteredExams(filtered);
     setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));

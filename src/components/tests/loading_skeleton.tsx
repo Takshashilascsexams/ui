@@ -1,20 +1,40 @@
-import React from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 
 export default function LoadingSkeleton() {
-  // Determine the number of skeletons to show based on screen size
-  const getSkeletonCount = () => {
-    // Check if we're in a browser environment
-    if (typeof window === "undefined") return 4;
+  const [skeletonCount, setSkeletonCount] = useState(4);
 
+  useEffect(() => {
+    // Only update the count after the component has mounted
     const width = window.innerWidth;
-    if (width < 640) return 2; // Mobile
-    if (width < 1024) return 4; // Tablet
-    return 6; // Desktop
-  };
+    if (width < 640) {
+      setSkeletonCount(2); // Mobile
+    } else if (width < 1024) {
+      setSkeletonCount(4); // Tablet
+    } else {
+      setSkeletonCount(6); // Desktop
+    }
+
+    // Handle resize
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setSkeletonCount(2); // Mobile
+      } else if (width < 1024) {
+        setSkeletonCount(4); // Tablet
+      } else {
+        setSkeletonCount(6); // Desktop
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array(getSkeletonCount())
+      {Array(skeletonCount)
         .fill(0)
         .map((_, i) => (
           <div key={i} className="bg-white rounded-xl p-5 animate-pulse">

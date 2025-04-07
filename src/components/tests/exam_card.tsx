@@ -61,7 +61,7 @@ export default function ExamCard({
           </Button>
           <Button
             onClick={() => onStartExam(exam.id)}
-            className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 px-4 bg-gray-800 hover:bg-gray-900 rounded-lg text-sm font-medium transition-colors"
           >
             Start Exam
           </Button>

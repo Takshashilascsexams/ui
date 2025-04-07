@@ -31,7 +31,8 @@ export const mockFetchExams = async (
     setTimeout(() => {
       const mockExams: Record<string, ExamType[]> = {};
 
-      // Generate mock exams for each category
+      // Generate mock exams for each category with deterministic data
+      // to avoid hydration mismatches
       categories.forEach((category) => {
         if (category === "all") return;
 
@@ -40,7 +41,17 @@ export const mockFetchExams = async (
           .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
           .join(" ");
 
-        mockExams[category] = Array(Math.floor(Math.random() * 5) + 1)
+        // Use fixed values instead of random to ensure consistency
+        const examCount =
+          category === "TEST_SERIES"
+            ? 4
+            : category === "SCREENING_TEST"
+            ? 3
+            : category === "SCHOLARSHIP_TEST"
+            ? 2
+            : 1;
+
+        mockExams[category] = Array(examCount)
           .fill(0)
           .map((_, i) => ({
             id: `${category}-${i}`,
@@ -48,19 +59,20 @@ export const mockFetchExams = async (
             description:
               "A focused examination on current affairs and general knowledge required for civil services preparation.",
             category: category,
-            duration: 60 + Math.floor(Math.random() * 6) * 10,
-            totalMarks: 50 + Math.floor(Math.random() * 6) * 10,
-            difficulty: ["EASY", "MEDIUM", "HARD"][
-              Math.floor(Math.random() * 3)
-            ] as "EASY" | "MEDIUM" | "HARD",
-            passPercentage: 45 + Math.floor(Math.random() * 4) * 5,
-            date: "2025-05-20",
+            duration: 60 + (i % 3) * 30, // Deterministic durations
+            totalMarks: 50 + (i % 4) * 25, // Deterministic marks
+            difficulty: ["EASY", "MEDIUM", "HARD"][i % 3] as
+              | "EASY"
+              | "MEDIUM"
+              | "HARD", // Deterministic difficulty
+            passPercentage: 45 + (i % 4) * 5, // Deterministic percentage
+            date: "2025-05-20", // Fixed date
             isFeatured: false,
-            participants: Math.floor(Math.random() * 1000) + 500,
+            participants: 500 + i * 100, // Deterministic participants
           }));
       });
 
-      // Add featured exams
+      // Add featured exams with deterministic data
       mockExams["featured"] = Array(3)
         .fill(0)
         .map((_, i) => ({
@@ -71,13 +83,14 @@ export const mockFetchExams = async (
           category: "TEST_SERIES",
           duration: 120,
           totalMarks: 100,
-          difficulty: ["EASY", "MEDIUM", "HARD"][
-            Math.floor(Math.random() * 3)
-          ] as "EASY" | "MEDIUM" | "HARD",
+          difficulty: ["EASY", "MEDIUM", "HARD"][i % 3] as
+            | "EASY"
+            | "MEDIUM"
+            | "HARD", // Deterministic difficulty
           passPercentage: 60,
-          date: "2025-04-15",
+          date: "2025-04-15", // Fixed date
           isFeatured: true,
-          participants: 1240 + i * 100,
+          participants: 1240 + i * 100, // Deterministic participants
         }));
 
       resolve({

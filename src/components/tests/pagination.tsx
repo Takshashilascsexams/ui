@@ -12,10 +12,23 @@ export default function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
+  const [isMounted] = React.useState(false);
+
   // For a responsive design, we'll show fewer page numbers on small screens
   const getPageNumbers = () => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    const isTablet = typeof window !== "undefined" && window.innerWidth < 768;
+    // Before mount, use a consistent simplified version for SSR
+    if (!isMounted) {
+      // Simple pagination for SSR to ensure consistency
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      } else {
+        return [1, 2, 3, "...", totalPages];
+      }
+    }
+
+    // After mount, we can use window to determine responsive behavior
+    const isMobile = window.innerWidth < 640;
+    const isTablet = window.innerWidth < 768;
 
     // On mobile, show fewer numbers
     if (isMobile && totalPages > 3) {
@@ -48,33 +61,7 @@ export default function Pagination({
       }
     }
 
-    // On desktop, show more numbers
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, "...", totalPages];
-    } else if (currentPage >= totalPages - 2) {
-      return [
-        1,
-        "...",
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      ];
-    } else {
-      return [
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages,
-      ];
-    }
+    return [];
   };
 
   if (totalPages <= 1) return null;

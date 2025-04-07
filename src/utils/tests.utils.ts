@@ -19,7 +19,12 @@ export const getDifficultyColor = (level?: string) => {
 export const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    // Use a fixed format that will be consistent between server and client
+    // Format: YYYY-MM-DD
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(date.getDate()).padStart(2, "0")}`;
   } catch (error) {
     console.log(error);
     return dateString;
@@ -36,7 +41,9 @@ export const applyFilters = (
 
   // Filter by category
   if (category !== "all") {
-    filtered = filtered.filter((exam) => exam.category === category);
+    filtered = filtered.filter((exam) => {
+      return exam.category === category;
+    });
   }
 
   // Filter by search query
