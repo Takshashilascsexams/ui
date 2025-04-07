@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { twMerge } from "tailwind-merge";
-import { TestSeriesType } from "@/actions/fetchTestSeries";
+import { TestSeriesType } from "@/actions/server/fetchTestSeries";
 
 const colorClasses = {
   blue: "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-500",

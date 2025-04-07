@@ -1,49 +1,82 @@
-import React from "react";
+import { Suspense } from "react";
 import { CATEGORIES } from "@/utils/constants";
-import { fetchExams } from "@/services/tests.services";
-
+import { fetchCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import ExamCatalogueClient from "@/components/tests/test_catalogue";
+import LoadingSkeleton from "@/components/tests/loading_skeleton";
 
-async function ExamCataloguePage() {
-  // Fetch data on the server
-  let examData = {
-    featured: [],
-    exams: [],
-    categories: CATEGORIES,
-  };
+async function ExamCatalogue() {
+  const exams = await fetchCategorizedExams(1, 10);
+  console.log(exams);
 
-  try {
-    const response = await fetchExams();
+  // Extract featured exams (if any)
+  const featured = exams.data.categorizedExams["FEATURED"] || [];
 
-    // Process the response to extract featured exams and regular exams
-    if (response && response.data) {
-      const categorizedExams = response.data.categorizedExams || {};
+  // Combine all other exams
+  const allExams = Object.entries(exams.data.categorizedExams)
+    .filter(([category]) => category !== "FEATURED")
+    .flatMap(([, exams]) => exams);
 
-      // Extract featured exams
-      const featured = categorizedExams["featured"] || [];
-      delete categorizedExams["featured"];
+  // Transform data to match the client component's expected structure
+  const transformedExams = allExams.map((exam) => ({
+    id: exam._id,
+    title: exam.title,
+    description: exam.description,
+    category: exam.category,
+    duration: exam.duration,
+    totalMarks: exam.totalMarks,
+    difficulty: exam.difficultyLevel,
+    passPercentage: exam.passMarkPercentage,
+    date: exam.createdAt,
+    isFeatured: exam.isFeatured,
+    isPremium: exam.isPremium,
+    price: exam.price,
+    discountPrice: exam.discountPrice,
+    accessPeriod: exam.accessPeriod,
+  }));
 
-      // Extract all other exams
-      const allExams = Object.values(categorizedExams).flat();
-
-      examData = {
-        featured,
-        exams: allExams,
-        categories: CATEGORIES,
-      };
-    }
-  } catch (error) {
-    console.error("Error fetching exam data:", error);
-    // Continue with empty data to show the UI in error state
-  }
+  const transformedFeatured = featured.map((exam) => ({
+    id: exam._id,
+    title: exam.title,
+    description: exam.description,
+    category: exam.category,
+    duration: exam.duration,
+    totalMarks: exam.totalMarks,
+    difficulty: exam.difficultyLevel,
+    passPercentage: exam.passMarkPercentage,
+    date: exam.createdAt,
+    isFeatured: exam.isFeatured,
+    isPremium: exam.isPremium,
+    price: exam.price,
+    discountPrice: exam.discountPrice,
+    accessPeriod: exam.accessPeriod,
+  }));
 
   return (
     <ExamCatalogueClient
-      initialExams={examData.exams}
-      initialFeaturedExams={examData.featured}
-      categories={examData.categories}
+      initialExams={transformedExams}
+      initialFeaturedExams={transformedFeatured}
+      categories={CATEGORIES}
     />
   );
 }
 
-export default ExamCataloguePage;
+// Page component with suspense for loading state
+export default function ExamsPage() {
+  return (
+    <div className="w-full min-h-screen bg-gray-50">
+      <Suspense
+        fallback={
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <div className="mb-8">
+              <div className="h-8 w-64 bg-gray-200 rounded-md mb-2 animate-pulse"></div>
+              <div className="h-4 w-96 bg-gray-200 rounded-md animate-pulse"></div>
+            </div>
+            <LoadingSkeleton />
+          </div>
+        }
+      >
+        <ExamCatalogue />
+      </Suspense>
+    </div>
+  );
+}

@@ -2,7 +2,7 @@ import Hero from "@/components/home/hero";
 import SectionsTemplate from "@/components/home/sections_template";
 import NotificationSection from "@/components/home/notification_section";
 import TestSeriesSection from "@/components/home/test_series_section";
-import { fetchTestSeries } from "@/actions/fetchTestSeries";
+import { fetchTestSeries } from "@/actions/server/fetchTestSeries";
 import {
   latestBlogsSectionData,
   currentAffairsSectionData,

@@ -1,4 +1,3 @@
-// src/constants/exam.constants.ts
 import { CategoryType } from "@/types/examTypes";
 
 // Categories for exams

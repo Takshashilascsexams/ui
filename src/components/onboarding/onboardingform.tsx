@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { completeOnboarding } from "@/actions/completeOnboarding";
-import { addUserToDb } from "@/actions/addUserToDb";
+import { completeOnboarding } from "@/actions/client/completeOnboarding";
+import { addUserToDb } from "@/actions/client/addUserToDb";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

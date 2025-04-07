@@ -121,9 +121,9 @@ export const currentAffairsSectionData = [
 export const difficultyLevel = ["EASY", "MEDIUM", "HARD"];
 
 export const testCategory = [
-  "TEST SERIES",
-  "SCREENING TEST",
-  "SCHOLARSHIP TEST",
+  "TEST_SERIES",
+  "SCREENING_TEST",
+  "SCHOLARSHIP_TEST",
   "OTHER",
 ];
 

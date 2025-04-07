@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLevel, testCategory } from "@/utils/arrays";
-import { createNewExam } from "@/actions/createNewExam";
-import { revalidateTestSeries } from "@/actions/fetchTestSeries";
+import getClerkToken from "@/actions/getClerkToken";
+import { revalidateTestSeries } from "@/actions/server/fetchTestSeries";
+import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import {
   Form,
   FormControl,
@@ -92,6 +93,33 @@ const addNewTestFormSchema = z
     allowNavigation: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
+    isFeatured: z.enum(["Yes", "No"], {
+      message: "Invalid option selection.",
+    }),
+    isPremium: z.enum(["Yes", "No"], {
+      message: "Invalid option selection.",
+    }),
+    price: z.string().refine(
+      (val) => {
+        if (val === undefined || val === "") return true;
+        const priceValue = parseFloat(val);
+        return !isNaN(priceValue) && priceValue > 0;
+      },
+      {
+        message: "Price must be greater than 0",
+      }
+    ),
+    discountPrice: z.string().refine(
+      (val) => {
+        if (val === undefined || val === "") return true;
+        const discountPrice = parseFloat(val);
+        return !isNaN(discountPrice) && discountPrice >= 0;
+      },
+      {
+        message: "Discount price must be greater than 0.",
+      }
+    ),
+    accessPeriod: z.string(),
   })
   .refine(
     (data) => {
@@ -106,12 +134,39 @@ const addNewTestFormSchema = z
     },
     {
       message: "Pass percentage should be at least 35% of total marks.",
-      path: ["passMarkPercentage"], // This targets the error at the passMarkPercentage field
+      path: ["passMarkPercentage"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.isPremium === "Yes") {
+        const price = parseFloat(data.price || "0");
+        return !isNaN(price) && price > 0;
+      }
+      return true;
+    },
+    {
+      message:
+        "Price is required for premium exams and must be greater than 0.",
+      path: ["price"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.isPremium === "Yes" && data.price && data.discountPrice) {
+        const price = parseFloat(data.price);
+        const discountPrice = parseFloat(data.discountPrice);
+        return discountPrice < price;
+      }
+      return true;
+    },
+    {
+      message: "Discount price cannot be greater or equal to original price.",
+      path: ["discountPrice"],
     }
   );
 
 export default function CreateExamForm() {
-  const [error, setError] = useState<string>("");
   const [isSubmittingForm, setIsSubmittingForm] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof addNewTestFormSchema>>({
@@ -119,33 +174,70 @@ export default function CreateExamForm() {
     defaultValues: {
       title: "",
       description: "",
-      duration: "",
-      totalQuestions: "",
-      totalMarks: "",
+      duration: "60",
+      totalQuestions: "100",
+      totalMarks: "100",
       hasNegativeMarking: "No",
       negativeMarkingValue: "0",
-      passMarkPercentage: "",
+      passMarkPercentage: "35",
       difficultyLevel: difficultyLevel[1],
       category: testCategory[0],
       allowNavigation: "No",
+      isFeatured: "No",
+      isPremium: "No",
+      price: "100",
+      discountPrice: "0",
+      accessPeriod: "0",
     },
   });
+
+  // Watch the isPremium field to conditionally show/hide price fields
+  const isPremium = form.watch("isPremium");
 
   const onSubmit = async (values: z.infer<typeof addNewTestFormSchema>) => {
     try {
       setIsSubmittingForm(true);
-      setError("");
 
-      await createNewExam(values);
+      // If not premium, clear price fields before submitting
+      if (values.isPremium === "No") {
+        values.price = "";
+        values.discountPrice = "";
+        values.accessPeriod = "0";
+      }
+
+      const clerkToken = await getClerkToken();
+      const URI = `${process.env.NEXT_PUBLIC_API_URL}/exam`;
+      const body = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${clerkToken}`,
+        },
+        body: JSON.stringify(values),
+      };
+
+      const response = await fetch(URI, body);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create question");
+      }
+
+      // const data = await response.json();
+      // console.log(data);
+
       form.reset();
       toast.success("A new test has been created");
-
-      // Revalidate the test series data after creation
+      // Revalidate
       await revalidateTestSeries();
+      await revalidateCategorizedExams();
     } catch (error) {
       console.log(error);
-      toast.error("Uh oh! Something went wrong.");
-      setError((error as Error).message || "Failed to create a new test.");
+      toast.error(
+        `Error: ${
+          error instanceof Error ? error.message : "Something went wrong"
+        }`
+      );
     } finally {
       setIsSubmittingForm(false);
     }
@@ -158,6 +250,7 @@ export default function CreateExamForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full flex flex-col items-center justify-center gap-5"
         >
+          {/* title */}
           <FormField
             control={form.control}
             name="title"
@@ -178,6 +271,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* description */}
           <FormField
             control={form.control}
             name="description"
@@ -199,6 +293,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* duration */}
           <FormField
             control={form.control}
             name="duration"
@@ -220,6 +315,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* total questions */}
           <FormField
             control={form.control}
             name="totalQuestions"
@@ -241,6 +337,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* total marks */}
           <FormField
             control={form.control}
             name="totalMarks"
@@ -262,6 +359,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* negative marking */}
           <FormField
             control={form.control}
             name="hasNegativeMarking"
@@ -295,6 +393,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* negative marking value */}
           <FormField
             control={form.control}
             name="negativeMarkingValue"
@@ -328,6 +427,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* pass percentage */}
           <FormField
             control={form.control}
             name="passMarkPercentage"
@@ -349,6 +449,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* difficulty level */}
           <FormField
             control={form.control}
             name="difficultyLevel"
@@ -382,6 +483,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* category */}
           <FormField
             control={form.control}
             name="category"
@@ -415,6 +517,7 @@ export default function CreateExamForm() {
             )}
           />
 
+          {/* allow navigation */}
           <FormField
             control={form.control}
             name="allowNavigation"
@@ -448,24 +551,154 @@ export default function CreateExamForm() {
             )}
           />
 
-          <div className="w-full">
-            {error && (
-              <p className="text-red-500 text-sm text-center">{error}</p>
+          {/* Featured */}
+          <FormField
+            control={form.control}
+            name="isFeatured"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Featured Exam
+                  <span className="text-red-500">*</span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Is this a featured exam?" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {["Yes", "No"].map((value, index) => {
+                      return (
+                        <SelectItem value={value} key={index}>
+                          {value}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
+          />
 
+          {/* New Feature: isPremium field */}
+          <FormField
+            control={form.control}
+            name="isPremium"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Premium Exam
+                  <span className="text-red-500">*</span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Is this a premium exam?" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {["Yes", "No"].map((value, index) => {
+                      return (
+                        <SelectItem value={value} key={index}>
+                          {value}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Conditional Price Fields - only show if isPremium is "Yes" */}
+          {isPremium === "Yes" && (
+            <div className="w-full flex flex-col gap-5 border p-4 rounded-lg bg-gray-50">
+              {/* Price */}
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        // step="0.01"
+                        placeholder="Enter price"
+                        className="text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* discount price */}
+              <FormField
+                control={form.control}
+                name="discountPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discount Price</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        // step="0.01"
+                        placeholder="Enter discount price (if applicable)"
+                        className="text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* access period */}
+              <FormField
+                control={form.control}
+                name="accessPeriod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Access period (in days) </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="e.g - 30"
+                        className="text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          {/* button */}
           <Button
             type="submit"
             disabled={
-              Object.keys(form.formState.dirtyFields).length < 6 ||
+              Object.keys(form.formState.dirtyFields).length < 2 ||
               isSubmittingForm
             }
             className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition disabled:bg-indigo-500 disabled:cursor-not-allowed"
           >
             {isSubmittingForm ? (
               <>
-                <Loader2 className="animate-spin" />
-                creating
+                <Loader2 className="animate-spin mr-2" />
+                Creating...
               </>
             ) : (
               "Create"
