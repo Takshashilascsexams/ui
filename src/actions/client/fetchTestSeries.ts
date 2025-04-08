@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import getClerkToken from "@/actions/getClerkToken";
+import getClerkToken from "@/actions/client/getClerkToken";
+import { unstable_noStore } from "next/cache";
 
 export type TestSeriesType = {
   _id: string;
@@ -13,6 +14,8 @@ export type TestSeriesType = {
 };
 
 export async function fetchTestSeries(): Promise<TestSeriesType[]> {
+  unstable_noStore();
+
   try {
     const token = await getClerkToken();
 

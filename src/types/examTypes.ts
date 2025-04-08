@@ -16,6 +16,10 @@ export type ExamType = {
   passPercentage: number;
   date: string;
   isFeatured: boolean;
+  isPremium: boolean;
+  price: number;
+  discountPrice?: number;
+  accessPeriod?: number;
   participants?: number;
 };
 

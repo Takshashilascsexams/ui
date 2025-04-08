@@ -1,5 +1,11 @@
 import React from "react";
-import { Clock, Award, BarChart3, ArrowUpRight } from "lucide-react";
+import {
+  Clock,
+  Award,
+  BarChart3,
+  ArrowUpRight,
+  CreditCard,
+} from "lucide-react";
 import { ExamType } from "@/types/examTypes";
 import { getDifficultyColor } from "@/utils/tests.utils";
 import { Button } from "../ui/button";
@@ -7,11 +13,13 @@ import { Button } from "../ui/button";
 interface FeaturedExamProps {
   exam: ExamType;
   onStartExam: (examId: string) => void;
+  onPurchaseExam?: (examId: string) => void;
 }
 
 export default function FeaturedTestCard({
   exam,
   onStartExam,
+  onPurchaseExam = () => {},
 }: FeaturedExamProps) {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 overflow-hidden transition-all hover:shadow-md">
@@ -48,13 +56,23 @@ export default function FeaturedTestCard({
           )}
         </div>
 
-        <Button
-          onClick={() => onStartExam(exam.id)}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-        >
-          Start Exam
-          <ArrowUpRight className="ml-1 h-4 w-4" />
-        </Button>
+        {exam.isPremium ? (
+          <Button
+            onClick={() => onPurchaseExam(exam.id)}
+            className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+          >
+            <CreditCard className="ml-1 h-4 w-4 mr-1" />
+            Purchase
+          </Button>
+        ) : (
+          <Button
+            onClick={() => onStartExam(exam.id)}
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+          >
+            Start Exam
+            <ArrowUpRight className="ml-1 h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

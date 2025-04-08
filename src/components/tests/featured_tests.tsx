@@ -6,11 +6,13 @@ import FeaturedTestCard from "./featured_test_card";
 interface FeaturedExamsProps {
   featuredExams: ExamType[];
   onStartExam: (examId: string) => void;
+  onPurchaseExam: (examId: string) => void;
 }
 
 export default function FeaturedExams({
   featuredExams,
   onStartExam,
+  onPurchaseExam = () => {},
 }: FeaturedExamsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -97,6 +99,7 @@ export default function FeaturedExams({
             key={exam.id}
             exam={exam}
             onStartExam={onStartExam}
+            onPurchaseExam={onPurchaseExam}
           />
         ))}
       </div>

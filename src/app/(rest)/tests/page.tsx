@@ -1,3 +1,4 @@
+import { unstable_noStore } from "next/cache";
 import { Suspense } from "react";
 import { CATEGORIES } from "@/utils/constants";
 import { fetchCategorizedExams } from "@/actions/client/fetchCategorizedExams";
@@ -5,8 +6,8 @@ import ExamCatalogueClient from "@/components/tests/test_catalogue";
 import LoadingSkeleton from "@/components/tests/loading_skeleton";
 
 async function ExamCatalogue() {
-  const exams = await fetchCategorizedExams(1, 10);
-  console.log(exams);
+  unstable_noStore();
+  const exams = await fetchCategorizedExams();
 
   // Extract featured exams (if any)
   const featured = exams.data.categorizedExams["FEATURED"] || [];

@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import getClerkToken from "../../actions/getClerkToken";
+import getClerkToken from "@/actions/client/getClerkToken";
 
 export const addNewTestFormSchema = z
   .object({

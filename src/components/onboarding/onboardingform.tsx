@@ -36,9 +36,12 @@ import {
 } from "@/components/ui/select";
 
 const onboardingFormSchema = z.object({
-  fullName: z.string().min(6, {
-    message: "Full name must be at least 6 characters.",
-  }),
+  fullName: z
+    .string()
+    .min(6, {
+      message: "Full name must be at least 6 characters.",
+    })
+    .max(100, { message: "Full name must have less than 100 characters" }),
   careOf: z.string().min(6, {
     message: "Father's or mother's name must be at least 6 characters.",
   }),

@@ -1,8 +1,9 @@
+import { unstable_noStore } from "next/cache";
 import Hero from "@/components/home/hero";
 import SectionsTemplate from "@/components/home/sections_template";
 import NotificationSection from "@/components/home/notification_section";
 import TestSeriesSection from "@/components/home/test_series_section";
-import { fetchTestSeries } from "@/actions/server/fetchTestSeries";
+import { fetchTestSeries } from "@/actions/client/fetchTestSeries";
 import {
   latestBlogsSectionData,
   currentAffairsSectionData,
@@ -12,6 +13,7 @@ const notificationText =
   "Results for Indian Polity Test Series are out! Check Now";
 
 export default async function Home() {
+  unstable_noStore();
   const testSeries = await fetchTestSeries();
 
   return (
