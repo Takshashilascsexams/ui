@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import getClerkToken from "@/actions/getClerkToken";
+import getClerkToken from "@/actions/client/getClerkToken";
+import { unstable_noStore } from "next/cache";
 
 export type ExamType = {
   _id: string;
@@ -45,6 +46,8 @@ export type CategorizedExamsResponse = {
  * @returns Categorized exams with pagination information
  */
 export async function fetchCategorizedExams(): Promise<CategorizedExamsResponse> {
+  unstable_noStore();
+
   try {
     // Get authentication token
     const token = await getClerkToken();

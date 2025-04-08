@@ -10,7 +10,7 @@ import previewBulkQuestionsUpload from "@/actions/server/previewBulkQuestionsUpl
 import { PreviewDataType } from "./hero";
 import { marks, difficultyLevel, negativeMarks } from "@/utils/arrays";
 import axiosInstance from "@/lib/axoisInstance";
-import getClerkToken from "../../actions/getClerkToken";
+import getClerkToken from "@/actions/client/getClerkToken";
 import { ArrowUpCircle, CheckCircle2 } from "lucide-react";
 import {
   Form,

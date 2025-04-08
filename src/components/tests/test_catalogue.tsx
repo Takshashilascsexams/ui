@@ -19,6 +19,11 @@ import LoadingSkeleton from "./loading_skeleton";
 import EmptyState from "./empty_state";
 import Pagination from "./pagination";
 
+// Add these imports and states:
+import PurchaseModal from "./purchase_modal";
+import { checkExamAccess } from "@/services/payment.services";
+import { toast } from "sonner";
+
 interface ExamCatalogueClientProps {
   initialExams: ExamType[];
   initialFeaturedExams: ExamType[];
@@ -41,6 +46,90 @@ export default function ExamCatalogueClient({
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  // Add these state variables
+  const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+
+  const [examAccess, setExamAccess] = useState<Record<string, boolean>>({});
+  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
+
+  // Fetch access status for all premium exams
+  useEffect(() => {
+    const checkAccessForPremiumExams = async () => {
+      setIsLoadingAccess(true);
+
+      const premiumExams = [...initialExams, ...initialFeaturedExams]
+        .filter((exam) => exam.isPremium)
+        .map((exam) => exam.id);
+
+      if (premiumExams.length === 0) {
+        setIsLoadingAccess(false);
+        return;
+      }
+
+      try {
+        const accessMap: Record<string, boolean> = {};
+
+        // Check access for each premium exam
+        await Promise.all(
+          premiumExams.map(async (examId) => {
+            const hasAccess = await checkExamAccess(examId);
+            accessMap[examId] = hasAccess;
+          })
+        );
+
+        setExamAccess(accessMap);
+      } catch (error) {
+        console.error("Error checking exam access:", error);
+        toast.error("Failed to check exam access status");
+      } finally {
+        setIsLoadingAccess(false);
+      }
+    };
+
+    checkAccessForPremiumExams();
+  }, [initialExams, initialFeaturedExams]);
+
+  // Modify the handleStartExam function to check for premium status
+  const handleStartExam = async (examId: string) => {
+    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+
+    if (!exam) {
+      toast.error("Exam not found");
+      return;
+    }
+
+    if (exam.isPremium) {
+      // Check if user already has access to this exam
+      const hasAccess = await checkExamAccess(examId);
+
+      if (hasAccess) {
+        // User already has access, they can start the exam
+        navigateToExamRules(examId);
+      } else {
+        // User needs to purchase the exam
+        setSelectedExam(exam);
+        setIsPurchaseModalOpen(true);
+      }
+    } else {
+      // Regular non-premium exam, direct navigation
+      navigateToExamRules(examId);
+    }
+  };
+
+  // Add a handle purchase function
+  const handlePurchaseExam = (examId: string) => {
+    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+
+    if (!exam) {
+      toast.error("Exam not found");
+      return;
+    }
+
+    setSelectedExam(exam);
+    setIsPurchaseModalOpen(true);
+  };
 
   // Initialize state client-side only after component mounts
   useEffect(() => {
@@ -141,6 +230,7 @@ export default function ExamCatalogueClient({
                 <FeaturedExams
                   featuredExams={featuredExams}
                   onStartExam={navigateToExamRules}
+                  onPurchaseExam={handlePurchaseExam}
                 />
               )}
 
@@ -162,10 +252,13 @@ export default function ExamCatalogueClient({
                 <>
                   <ExamList
                     exams={filteredExams}
+                    examAccess={examAccess}
                     currentPage={currentPage}
                     itemsPerPage={ITEMS_PER_PAGE}
-                    onStartExam={navigateToExamRules}
+                    onStartExam={handleStartExam}
                     onViewDetails={viewExamDetails}
+                    onPurchaseExam={handlePurchaseExam}
+                    isLoadingAccess={isLoadingAccess}
                   />
 
                   {/* Pagination */}
@@ -182,6 +275,22 @@ export default function ExamCatalogueClient({
               )}
             </div>
           </>
+        )}
+
+        {/* Purchase modal for premium exams */}
+        {selectedExam && (
+          <PurchaseModal
+            exam={selectedExam}
+            isOpen={isPurchaseModalOpen}
+            onOpenChange={setIsPurchaseModalOpen}
+            onPaymentSuccess={(examId) => {
+              // Update the access map when payment is successful
+              setExamAccess((prev) => ({
+                ...prev,
+                [examId]: true,
+              }));
+            }}
+          />
         )}
       </div>
     </div>

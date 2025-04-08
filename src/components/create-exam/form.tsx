@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLevel, testCategory } from "@/utils/arrays";
-import getClerkToken from "@/actions/getClerkToken";
-import { revalidateTestSeries } from "@/actions/server/fetchTestSeries";
+import getClerkToken from "@/actions/client/getClerkToken";
+import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import {
   Form,
