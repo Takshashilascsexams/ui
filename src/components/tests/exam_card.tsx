@@ -1,5 +1,8 @@
-// src/components/tests/exam_card.tsx
 import React from "react";
+import { ExamType } from "@/types/examTypes";
+import { getDifficultyColor, formatDate } from "@/utils/tests.utils";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import {
   Clock,
   Award,
@@ -9,14 +12,10 @@ import {
   CreditCard,
   Play,
 } from "lucide-react";
-import { ExamType } from "@/types/examTypes";
-import { getDifficultyColor, formatDate } from "@/utils/tests.utils";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 
 interface ExamCardProps {
   exam: ExamType;
-  hasAccess: boolean; // New prop to indicate if user has access
+  hasAccess: boolean; // Flag to indicate if user has access
   onStartExam: (examId: string) => void;
   onViewDetails?: (examId: string) => void;
   onPurchaseExam?: (examId: string) => void;

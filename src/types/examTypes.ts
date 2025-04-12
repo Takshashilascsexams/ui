@@ -21,6 +21,7 @@ export type ExamType = {
   discountPrice?: number;
   accessPeriod?: number;
   participants?: number;
+  hasAccess: boolean;
 };
 
 // Pagination type

@@ -8,6 +8,7 @@ import LoadingSkeleton from "@/components/tests/loading_skeleton";
 async function ExamCatalogue() {
   unstable_noStore();
   const exams = await fetchCategorizedExams();
+  console.log(exams);
 
   // Extract featured exams (if any)
   const featured = exams.data.categorizedExams["FEATURED"] || [];
@@ -33,6 +34,7 @@ async function ExamCatalogue() {
     price: exam.price,
     discountPrice: exam.discountPrice,
     accessPeriod: exam.accessPeriod,
+    hasAccess: exam.hasAccess ?? false,
   }));
 
   const transformedFeatured = featured.map((exam) => ({
@@ -50,6 +52,7 @@ async function ExamCatalogue() {
     price: exam.price,
     discountPrice: exam.discountPrice,
     accessPeriod: exam.accessPeriod,
+    hasAccess: exam.hasAccess ?? false,
   }));
 
   return (

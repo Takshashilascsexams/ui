@@ -1,6 +1,23 @@
 "use client";
 
+import Script from "next/script";
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+// import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
+import { useRouter } from "next/navigation";
+import { ExamType } from "@/types/examTypes";
+import { Loader2, CheckCircle, CreditCard, Info } from "lucide-react";
+import getClerkToken from "@/actions/client/getClerkToken";
+import { Button } from "@/components/ui/button";
+import { initiatePayment } from "@/services/payment.services";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Extend the Window interface to include Razorpay
 declare global {
@@ -11,28 +28,28 @@ declare global {
     };
   }
 }
-import { useRouter } from "next/navigation";
-import { ExamType } from "@/types/examTypes";
-import { toast } from "sonner";
-import { Loader2, CheckCircle, CreditCard, Info } from "lucide-react";
-import getClerkToken from "@/actions/client/getClerkToken";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { initiatePayment } from "@/services/payment.services";
-import Script from "next/script";
 
 interface PurchaseModalProps {
   exam: ExamType;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentSuccess?: (examId: string) => void;
+  onPaymentSuccess?: () => void;
+}
+
+interface PaymentData {
+  razorpayOrder: {
+    id: string;
+    amount: number;
+    currency: string;
+  };
+  [key: string]: unknown; // Add additional fields if needed
+}
+
+interface RazorpayOrderData {
+  id: string;
+  amount: number;
+  currency: string;
+  [key: string]: unknown; // Add additional fields if needed
 }
 
 export default function PurchaseModal({
@@ -47,14 +64,6 @@ export default function PurchaseModal({
     "details"
   );
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  interface PaymentData {
-    razorpayOrder: {
-      id: string;
-      amount: number;
-      currency: string;
-    };
-    [key: string]: unknown; // Add additional fields if needed
-  }
 
   const [, setPaymentData] = useState<PaymentData | null>(null);
 
@@ -86,14 +95,61 @@ export default function PurchaseModal({
     };
   }, []);
 
-  // Open Razorpay payment form
-  interface RazorpayOrderData {
-    id: string;
-    amount: number;
-    currency: string;
-    [key: string]: unknown; // Add additional fields if needed
-  }
+  // Verify Payment function
+  const verifyPayment = async (response: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }) => {
+    try {
+      setStep("processing");
 
+      // Call API to verify payment
+      const verificationData = {
+        paymentId: response.razorpay_payment_id,
+        orderId: response.razorpay_order_id,
+        razorpaySignature: response.razorpay_signature,
+        examId: exam.id,
+      };
+
+      const token = await getClerkToken();
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/payments/verify`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(verificationData),
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.status === "success") {
+        // Revalidate exams data to refresh access status
+        // await revalidateCategorizedExams();
+
+        setStep("success");
+        if (onPaymentSuccess) {
+          onPaymentSuccess();
+        }
+      } else {
+        toast.error(data.message || "Payment verification failed");
+        setStep("details");
+      }
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      toast.error("Failed to verify payment. Please contact support.");
+      setStep("details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Open Razorpay payment form
   const openRazorpayCheckout = (orderData: RazorpayOrderData) => {
     if (!scriptLoaded || !window.Razorpay) {
       toast.error("Payment system is not loaded yet. Please try again.");
@@ -107,7 +163,7 @@ export default function PurchaseModal({
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: orderData.amount,
       currency: orderData.currency,
-      name: "Exam Portal",
+      name: "TSCS Exam Portal",
       description: `Payment for ${exam.title}`,
       order_id: orderData.id,
       prefill: {
@@ -138,55 +194,6 @@ export default function PurchaseModal({
     // Create Razorpay instance and open checkout
     const razorpay = new window.Razorpay(options);
     razorpay.open();
-  };
-
-  // Verify payment after Razorpay callback
-  const verifyPayment = async (response: {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }) => {
-    try {
-      setStep("processing");
-
-      // Call API to verify payment
-      const verificationData = {
-        razorpay_payment_id: response.razorpay_payment_id,
-        razorpay_order_id: response.razorpay_order_id,
-        razorpay_signature: response.razorpay_signature,
-        examId: exam.id,
-      };
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/payments/verify`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await getClerkToken()}`,
-          },
-          body: JSON.stringify(verificationData),
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.status === "success") {
-        setStep("success");
-        if (onPaymentSuccess) {
-          onPaymentSuccess(exam.id);
-        }
-      } else {
-        toast.error(data.message || "Payment verification failed");
-        setStep("details");
-      }
-    } catch (error) {
-      console.error("Payment verification error:", error);
-      toast.error("Failed to verify payment. Please contact support.");
-      setStep("details");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // Initiate payment process

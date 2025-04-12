@@ -12,12 +12,14 @@ import { Button } from "../ui/button";
 
 interface FeaturedExamProps {
   exam: ExamType;
+  hasAccess: boolean;
   onStartExam: (examId: string) => void;
   onPurchaseExam?: (examId: string) => void;
 }
 
 export default function FeaturedTestCard({
   exam,
+  hasAccess,
   onStartExam,
   onPurchaseExam = () => {},
 }: FeaturedExamProps) {
@@ -56,7 +58,39 @@ export default function FeaturedTestCard({
           )}
         </div>
 
-        {exam.isPremium ? (
+        {/* Premium info with pricing for non-accessible exams */}
+        {exam.isPremium && !hasAccess && (
+          <div className="mb-4 p-2 bg-amber-50 rounded-md text-xs">
+            <div className="flex justify-between items-center">
+              <div className="font-medium text-amber-800">
+                {exam.discountPrice && exam.discountPrice < exam.price ? (
+                  <span>
+                    ₹{exam.discountPrice}{" "}
+                    <span className="line-through text-gray-500">
+                      ₹{exam.price}
+                    </span>
+                  </span>
+                ) : (
+                  <span>₹{exam.price}</span>
+                )}
+              </div>
+              <div className="text-gray-600">
+                {exam.accessPeriod || 30} days access
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Access granted message for premium exams */}
+        {exam.isPremium && hasAccess && (
+          <div className="mb-4 p-2 bg-green-50 rounded-md text-xs">
+            <p className="text-green-700 font-medium text-center">
+              You have access to this exam
+            </p>
+          </div>
+        )}
+
+        {exam.isPremium && !hasAccess ? (
           <Button
             onClick={() => onPurchaseExam(exam.id)}
             className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"

@@ -61,6 +61,11 @@ export default function FeaturedExams({
           <FeaturedTestCard
             exam={featuredExams[currentIndex]}
             onStartExam={onStartExam}
+            onPurchaseExam={onPurchaseExam}
+            hasAccess={
+              featuredExams[currentIndex].hasAccess ??
+              !featuredExams[currentIndex].isPremium
+            }
           />
         </div>
 
@@ -100,6 +105,7 @@ export default function FeaturedExams({
             exam={exam}
             onStartExam={onStartExam}
             onPurchaseExam={onPurchaseExam}
+            hasAccess={exam.hasAccess ?? !exam.isPremium}
           />
         ))}
       </div>

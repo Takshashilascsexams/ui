@@ -20,6 +20,7 @@ export type ExamType = {
   price: number;
   discountPrice: number;
   accessPeriod: number;
+  hasAccess?: boolean;
 };
 
 export type PaginationType = {
