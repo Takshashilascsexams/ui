@@ -1,10 +1,11 @@
 // src/services/payment.services.ts
 import getClerkToken from "@/actions/client/getClerkToken";
+import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 
 /**
  * Initiates payment for a premium exam
  * @param examId - The ID of the exam being purchased
- * @returns Payment details including redirect URL for payment gateway
+ * @returns Payment details including Razorpay order information
  */
 export const initiatePayment = async (examId: string) => {
   try {
@@ -39,17 +40,34 @@ export const initiatePayment = async (examId: string) => {
 };
 
 /**
- * Verifies a payment after return from payment gateway
- * @param paymentId - The payment ID to verify
+ * Verifies a payment after returning from payment gateway
+ *
+ * @param paymentData - The payment details returned from Razorpay
+ * @param examId - The ID of the exam being purchased
  * @returns Verification result
  */
-export const verifyPayment = async (paymentId: string, orderId: string) => {
+export const verifyPayment = async (
+  paymentData: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  },
+  examId: string
+) => {
   try {
     const clerkToken = await getClerkToken();
 
     if (!clerkToken) {
       throw new Error("Authentication token not available");
     }
+
+    // Format verification data to match backend expectations
+    const verificationData = {
+      paymentId: paymentData.razorpay_payment_id,
+      orderId: paymentData.razorpay_order_id,
+      razorpaySignature: paymentData.razorpay_signature,
+      examId: examId,
+    };
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/payments/verify`,
@@ -59,7 +77,7 @@ export const verifyPayment = async (paymentId: string, orderId: string) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${clerkToken}`,
         },
-        body: JSON.stringify({ paymentId, orderId }),
+        body: JSON.stringify(verificationData),
       }
     );
 
@@ -67,6 +85,9 @@ export const verifyPayment = async (paymentId: string, orderId: string) => {
       const error = await response.json();
       throw new Error(error.message || "Failed to verify payment");
     }
+
+    // After successful payment verification, revalidate the exams data
+    await revalidateCategorizedExams();
 
     return await response.json();
   } catch (error) {
@@ -77,6 +98,7 @@ export const verifyPayment = async (paymentId: string, orderId: string) => {
 
 /**
  * Check if user has access to a premium exam
+ *
  * @param examId - The ID of the exam to check access for
  * @returns Boolean indicating if user has access
  */
@@ -103,7 +125,7 @@ export const checkExamAccess = async (examId: string) => {
     }
 
     const data = await response.json();
-    return data.hasAccess;
+    return data.data.hasAccess;
   } catch (error) {
     console.error("Access check error:", error);
     return false;

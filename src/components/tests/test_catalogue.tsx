@@ -5,9 +5,14 @@ import { ITEMS_PER_PAGE } from "@/utils/constants";
 import { ExamType, CategoryType } from "@/types/examTypes";
 import { navigateToExamRules } from "@/services/tests.services";
 import {
+  revalidateCategorizedExams,
+  fetchCategorizedExams,
+} from "@/actions/client/fetchCategorizedExams";
+import {
   applyFilters,
   updateUrlWithPage,
   getQueryParam,
+  clearParams,
 } from "@/utils/tests.utils";
 
 // Import components
@@ -18,10 +23,7 @@ import ExamList from "./exam_list";
 import LoadingSkeleton from "./loading_skeleton";
 import EmptyState from "./empty_state";
 import Pagination from "./pagination";
-
-// Add these imports and states:
 import PurchaseModal from "./purchase_modal";
-import { checkExamAccess } from "@/services/payment.services";
 import { toast } from "sonner";
 
 interface ExamCatalogueClientProps {
@@ -37,8 +39,9 @@ export default function ExamCatalogueClient({
 }: ExamCatalogueClientProps) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isLoading] = useState(false);
-  const [exams] = useState<ExamType[]>(initialExams);
-  const [featuredExams] = useState<ExamType[]>(initialFeaturedExams);
+  const [exams, setExams] = useState<ExamType[]>(initialExams);
+  const [featuredExams, setFeaturedExams] =
+    useState<ExamType[]>(initialFeaturedExams);
   const [filteredExams, setFilteredExams] = useState<ExamType[]>(initialExams);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(
@@ -50,86 +53,6 @@ export default function ExamCatalogueClient({
   // Add these state variables
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-
-  const [examAccess, setExamAccess] = useState<Record<string, boolean>>({});
-  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
-
-  // Fetch access status for all premium exams
-  useEffect(() => {
-    const checkAccessForPremiumExams = async () => {
-      setIsLoadingAccess(true);
-
-      const premiumExams = [...initialExams, ...initialFeaturedExams]
-        .filter((exam) => exam.isPremium)
-        .map((exam) => exam.id);
-
-      if (premiumExams.length === 0) {
-        setIsLoadingAccess(false);
-        return;
-      }
-
-      try {
-        const accessMap: Record<string, boolean> = {};
-
-        // Check access for each premium exam
-        await Promise.all(
-          premiumExams.map(async (examId) => {
-            const hasAccess = await checkExamAccess(examId);
-            accessMap[examId] = hasAccess;
-          })
-        );
-
-        setExamAccess(accessMap);
-      } catch (error) {
-        console.error("Error checking exam access:", error);
-        toast.error("Failed to check exam access status");
-      } finally {
-        setIsLoadingAccess(false);
-      }
-    };
-
-    checkAccessForPremiumExams();
-  }, [initialExams, initialFeaturedExams]);
-
-  // Modify the handleStartExam function to check for premium status
-  const handleStartExam = async (examId: string) => {
-    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
-
-    if (!exam) {
-      toast.error("Exam not found");
-      return;
-    }
-
-    if (exam.isPremium) {
-      // Check if user already has access to this exam
-      const hasAccess = await checkExamAccess(examId);
-
-      if (hasAccess) {
-        // User already has access, they can start the exam
-        navigateToExamRules(examId);
-      } else {
-        // User needs to purchase the exam
-        setSelectedExam(exam);
-        setIsPurchaseModalOpen(true);
-      }
-    } else {
-      // Regular non-premium exam, direct navigation
-      navigateToExamRules(examId);
-    }
-  };
-
-  // Add a handle purchase function
-  const handlePurchaseExam = (examId: string) => {
-    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
-
-    if (!exam) {
-      toast.error("Exam not found");
-      return;
-    }
-
-    setSelectedExam(exam);
-    setIsPurchaseModalOpen(true);
-  };
 
   // Initialize state client-side only after component mounts
   useEffect(() => {
@@ -154,6 +77,7 @@ export default function ExamCatalogueClient({
     const filtered = applyFilters(exams, category, searchQuery);
     setFilteredExams(filtered);
     setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    clearParams(); // clear url params
     setCurrentPage(1); // Reset to first page
   };
 
@@ -200,6 +124,143 @@ export default function ExamCatalogueClient({
     // Implement navigation to details page
   };
 
+  // Modify the handleStartExam function to use the hasAccess property
+  const handleStartExam = (examId: string) => {
+    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+
+    if (!exam) {
+      toast.error("Exam not found");
+      return;
+    }
+
+    if (exam.isPremium && !exam.hasAccess) {
+      // User needs to purchase the exam
+      setSelectedExam(exam);
+      setIsPurchaseModalOpen(true);
+    } else {
+      // User has access (either free exam or premium with access)
+      navigateToExamRules(examId);
+    }
+  };
+
+  // Add a handle purchase function
+  const handlePurchaseExam = (examId: string) => {
+    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+
+    if (!exam) {
+      toast.error("Exam not found");
+      return;
+    }
+
+    setSelectedExam(exam);
+    setIsPurchaseModalOpen(true);
+  };
+
+  // Update exam access status after payment success
+  // const handlePaymentSuccess = async (examId: string) => {
+  //   try {
+  //     // Revalidate data to refresh the page
+  //     await revalidateCategorizedExams();
+
+  //     // Optimistically update the exams in state until revalidation takes effect
+  //     const updatedExams = exams.map((exam) =>
+  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
+  //     );
+  //     setExams(updatedExams);
+
+  //     const updatedFeatured = featuredExams.map((exam) =>
+  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
+  //     );
+  //     setFeaturedExams(updatedFeatured);
+
+  //     // Update filtered exams with the new access status
+  //     const updatedFiltered = filteredExams.map((exam) =>
+  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
+  //     );
+  //     setFilteredExams(updatedFiltered);
+
+  //     toast.success("Purchase successful! You now have access to this exam.");
+  //   } catch (error) {
+  //     console.error("Error updating exam access:", error);
+  //     toast.error(
+  //       "There was an issue updating your access. Please refresh the page."
+  //     );
+  //   }
+  // };
+
+  const handlePaymentSuccess = async () => {
+    try {
+      // Invalidate the cache first
+      await revalidateCategorizedExams();
+
+      // Explicitly fetch fresh data
+      const freshData = await fetchCategorizedExams();
+
+      // Update all state with the fresh data
+      if (freshData.status === "success") {
+        // Extract all non-featured exams
+        const allExams = Object.entries(freshData.data.categorizedExams)
+          .filter(([category]) => category !== "FEATURED")
+          .flatMap(([, exams]) =>
+            exams.map((exam) => ({
+              id: exam._id,
+              title: exam.title,
+              description: exam.description,
+              category: exam.category,
+              duration: exam.duration,
+              totalMarks: exam.totalMarks,
+              difficulty: exam.difficultyLevel,
+              passPercentage: exam.passMarkPercentage,
+              date: exam.createdAt,
+              isFeatured: exam.isFeatured,
+              isPremium: exam.isPremium,
+              price: exam.price,
+              discountPrice: exam.discountPrice,
+              accessPeriod: exam.accessPeriod,
+              hasAccess: exam.hasAccess ?? false,
+            }))
+          );
+
+        // Extract featured exams
+        const featured = (
+          freshData.data.categorizedExams["FEATURED"] || []
+        ).map((exam) => ({
+          id: exam._id,
+          title: exam.title,
+          description: exam.description,
+          category: exam.category,
+          duration: exam.duration,
+          totalMarks: exam.totalMarks,
+          difficulty: exam.difficultyLevel,
+          passPercentage: exam.passMarkPercentage,
+          date: exam.createdAt,
+          isFeatured: exam.isFeatured,
+          isPremium: exam.isPremium,
+          price: exam.price,
+          discountPrice: exam.discountPrice,
+          accessPeriod: exam.accessPeriod,
+          hasAccess: exam.hasAccess ?? false,
+        }));
+
+        // Update state with fresh data
+        setExams(allExams);
+        setFeaturedExams(featured);
+
+        // Apply current filters to the fresh data
+        const filtered = applyFilters(allExams, activeCategory, searchQuery);
+        setFilteredExams(filtered);
+        setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+      }
+
+      toast.success("Purchase successful! You now have access to this exam.");
+    } catch (error) {
+      console.error("Error updating exam access:", error);
+      toast.error(
+        "There was an issue updating your access. Please refresh the page."
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
@@ -229,7 +290,7 @@ export default function ExamCatalogueClient({
               featuredExams.length > 0 && (
                 <FeaturedExams
                   featuredExams={featuredExams}
-                  onStartExam={navigateToExamRules}
+                  onStartExam={handleStartExam}
                   onPurchaseExam={handlePurchaseExam}
                 />
               )}
@@ -252,13 +313,11 @@ export default function ExamCatalogueClient({
                 <>
                   <ExamList
                     exams={filteredExams}
-                    examAccess={examAccess}
                     currentPage={currentPage}
                     itemsPerPage={ITEMS_PER_PAGE}
                     onStartExam={handleStartExam}
                     onViewDetails={viewExamDetails}
                     onPurchaseExam={handlePurchaseExam}
-                    isLoadingAccess={isLoadingAccess}
                   />
 
                   {/* Pagination */}
@@ -283,13 +342,7 @@ export default function ExamCatalogueClient({
             exam={selectedExam}
             isOpen={isPurchaseModalOpen}
             onOpenChange={setIsPurchaseModalOpen}
-            onPaymentSuccess={(examId) => {
-              // Update the access map when payment is successful
-              setExamAccess((prev) => ({
-                ...prev,
-                [examId]: true,
-              }));
-            }}
+            onPaymentSuccess={handlePaymentSuccess}
           />
         )}
       </div>

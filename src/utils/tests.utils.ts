@@ -65,6 +65,25 @@ export const getQueryParam = (param: string): string => {
   return urlParams.get(param) || "";
 };
 
+export const clearParams = () => {
+  // Check if running in a browser environment
+  if (typeof window === "undefined") return;
+
+  // Create a URLSearchParams object from the current URL
+  const urlParams = new URLSearchParams(window.location.search);
+
+  // Delete all parameters
+  urlParams.forEach((_, key) => urlParams.delete(key));
+
+  // Update the URL in the browser without reloading the page
+  const newUrl =
+    window.location.pathname +
+    (urlParams.toString() ? `?${urlParams.toString()}` : "") +
+    window.location.hash;
+
+  window.history.pushState({}, "", newUrl);
+};
+
 // Update URL with new page number
 export const updateUrlWithPage = (page: number): void => {
   if (typeof window === "undefined") return;
