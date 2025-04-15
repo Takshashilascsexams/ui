@@ -7,12 +7,14 @@ interface FeaturedExamsProps {
   featuredExams: ExamType[];
   onStartExam: (examId: string) => void;
   onPurchaseExam: (examId: string) => void;
+  processingExamIds?: string[];
 }
 
 export default function FeaturedExams({
   featuredExams,
   onStartExam,
   onPurchaseExam = () => {},
+  processingExamIds = [],
 }: FeaturedExamsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -66,6 +68,9 @@ export default function FeaturedExams({
               featuredExams[currentIndex].hasAccess ??
               !featuredExams[currentIndex].isPremium
             }
+            isProcessing={processingExamIds.includes(
+              featuredExams[currentIndex].id
+            )}
           />
         </div>
 
@@ -98,7 +103,7 @@ export default function FeaturedExams({
         Featured Exams
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
         {featuredExams.map((exam) => (
           <FeaturedTestCard
             key={exam.id}
@@ -106,6 +111,7 @@ export default function FeaturedExams({
             onStartExam={onStartExam}
             onPurchaseExam={onPurchaseExam}
             hasAccess={exam.hasAccess ?? !exam.isPremium}
+            isProcessing={processingExamIds.includes(exam.id)}
           />
         ))}
       </div>

@@ -9,6 +9,7 @@ interface ExamListProps {
   onStartExam: (examId: string) => void;
   onViewDetails?: (examId: string) => void;
   onPurchaseExam?: (examId: string) => void;
+  processingExamIds?: string[];
 }
 
 export default function ExamList({
@@ -18,6 +19,7 @@ export default function ExamList({
   onStartExam,
   onViewDetails = () => {},
   onPurchaseExam = () => {},
+  processingExamIds = [],
 }: ExamListProps) {
   // Get current page items
   const getCurrentItems = () => {
@@ -38,6 +40,7 @@ export default function ExamList({
           onStartExam={onStartExam}
           onViewDetails={onViewDetails}
           onPurchaseExam={onPurchaseExam}
+          isProcessing={processingExamIds.includes(exam.id)}
         />
       ))}
     </div>

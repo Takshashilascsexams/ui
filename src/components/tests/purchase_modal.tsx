@@ -3,10 +3,10 @@
 import Script from "next/script";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-// import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { ExamType } from "@/types/examTypes";
-import { Loader2, CheckCircle, CreditCard, Info } from "lucide-react";
+// import { Loader2, CheckCircle, CreditCard, Info } from "lucide-react";
+import { Loader2, CreditCard, Info } from "lucide-react";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { Button } from "@/components/ui/button";
 import { initiatePayment } from "@/services/payment.services";
@@ -34,6 +34,7 @@ interface PurchaseModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onPaymentSuccess?: () => void;
+  setProcessingExamIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 interface PaymentData {
@@ -57,15 +58,13 @@ export default function PurchaseModal({
   isOpen,
   onOpenChange,
   onPaymentSuccess,
+  setProcessingExamIds,
 }: PurchaseModalProps) {
-  const router = useRouter();
+  // const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"details" | "processing" | "success">(
-    "details"
-  );
   const [scriptLoaded, setScriptLoaded] = useState(false);
-
   const [, setPaymentData] = useState<PaymentData | null>(null);
+  const [step, setStep] = useState<"details" | "processing">("details");
 
   useEffect(() => {
     // Check if script is already loaded
@@ -129,10 +128,7 @@ export default function PurchaseModal({
       const data = await res.json();
 
       if (data.status === "success") {
-        // Revalidate exams data to refresh access status
-        // await revalidateCategorizedExams();
-
-        setStep("success");
+        setStep("details");
         if (onPaymentSuccess) {
           onPaymentSuccess();
         }
@@ -187,6 +183,7 @@ export default function PurchaseModal({
           // User closed Razorpay payment window
           setIsLoading(false);
           setStep("details");
+          setProcessingExamIds([]);
         },
       },
     };
@@ -201,6 +198,7 @@ export default function PurchaseModal({
     try {
       setIsLoading(true);
       setStep("processing");
+      setProcessingExamIds((prev) => [...prev, exam.id]);
 
       // Initiate payment through our service
       const response = await initiatePayment(exam.id);
@@ -218,10 +216,10 @@ export default function PurchaseModal({
     }
   };
 
-  const handleViewExam = () => {
-    onOpenChange(false);
-    router.push(`/rules?examId=${exam.id}`);
-  };
+  // const handleViewExam = () => {
+  //   onOpenChange(false);
+  //   router.push(`/rules?examId=${exam.id}`);
+  // };
 
   return (
     <>
@@ -233,7 +231,7 @@ export default function PurchaseModal({
       />
 
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-4/5 lg:w-3/5 xl:w-2/5 rounded-lg">
           {step === "details" && (
             <>
               <DialogHeader>
@@ -292,7 +290,7 @@ export default function PurchaseModal({
                 </div>
               </div>
 
-              <DialogFooter className="flex sm:justify-between">
+              <DialogFooter className="flex sm:justify-between gap-4">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
@@ -318,7 +316,7 @@ export default function PurchaseModal({
             </div>
           )}
 
-          {step === "success" && (
+          {/* {step === "success" && (
             <>
               <DialogHeader>
                 <div className="flex flex-col items-center pt-4">
@@ -356,7 +354,7 @@ export default function PurchaseModal({
                 </Button>
               </DialogFooter>
             </>
-          )}
+          )} */}
         </DialogContent>
       </Dialog>
     </>

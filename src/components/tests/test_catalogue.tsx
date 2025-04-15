@@ -4,6 +4,15 @@ import React, { useState, useEffect } from "react";
 import { ITEMS_PER_PAGE } from "@/utils/constants";
 import { ExamType, CategoryType } from "@/types/examTypes";
 import { navigateToExamRules } from "@/services/tests.services";
+import PageHeader from "./page_header";
+import CategoryTabs from "./category_tabs";
+import FeaturedExams from "./featured_tests";
+import ExamList from "./exam_list";
+import LoadingSkeleton from "./loading_skeleton";
+import EmptyState from "./empty_state";
+import Pagination from "./pagination";
+import PurchaseModal from "./purchase_modal";
+import { toast } from "sonner";
 import {
   revalidateCategorizedExams,
   fetchCategorizedExams,
@@ -14,17 +23,6 @@ import {
   getQueryParam,
   clearParams,
 } from "@/utils/tests.utils";
-
-// Import components
-import PageHeader from "./page_header";
-import CategoryTabs from "./category_tabs";
-import FeaturedExams from "./featured_tests";
-import ExamList from "./exam_list";
-import LoadingSkeleton from "./loading_skeleton";
-import EmptyState from "./empty_state";
-import Pagination from "./pagination";
-import PurchaseModal from "./purchase_modal";
-import { toast } from "sonner";
 
 interface ExamCatalogueClientProps {
   initialExams: ExamType[];
@@ -53,6 +51,7 @@ export default function ExamCatalogueClient({
   // Add these state variables
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [processingExamIds, setProcessingExamIds] = useState<string[]>([]);
 
   // Initialize state client-side only after component mounts
   useEffect(() => {
@@ -157,37 +156,6 @@ export default function ExamCatalogueClient({
   };
 
   // Update exam access status after payment success
-  // const handlePaymentSuccess = async (examId: string) => {
-  //   try {
-  //     // Revalidate data to refresh the page
-  //     await revalidateCategorizedExams();
-
-  //     // Optimistically update the exams in state until revalidation takes effect
-  //     const updatedExams = exams.map((exam) =>
-  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
-  //     );
-  //     setExams(updatedExams);
-
-  //     const updatedFeatured = featuredExams.map((exam) =>
-  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
-  //     );
-  //     setFeaturedExams(updatedFeatured);
-
-  //     // Update filtered exams with the new access status
-  //     const updatedFiltered = filteredExams.map((exam) =>
-  //       exam.id === examId ? { ...exam, hasAccess: true } : exam
-  //     );
-  //     setFilteredExams(updatedFiltered);
-
-  //     toast.success("Purchase successful! You now have access to this exam.");
-  //   } catch (error) {
-  //     console.error("Error updating exam access:", error);
-  //     toast.error(
-  //       "There was an issue updating your access. Please refresh the page."
-  //     );
-  //   }
-  // };
-
   const handlePaymentSuccess = async () => {
     try {
       // Invalidate the cache first
@@ -250,11 +218,18 @@ export default function ExamCatalogueClient({
         const filtered = applyFilters(allExams, activeCategory, searchQuery);
         setFilteredExams(filtered);
         setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+
+        // Clear the processing state for all exams since we have fresh data
+        setProcessingExamIds([]);
       }
 
       toast.success("Purchase successful! You now have access to this exam.");
     } catch (error) {
       console.error("Error updating exam access:", error);
+
+      // Even on error, we should clear processing state to allow retries
+      setProcessingExamIds([]);
+
       toast.error(
         "There was an issue updating your access. Please refresh the page."
       );
@@ -292,6 +267,7 @@ export default function ExamCatalogueClient({
                   featuredExams={featuredExams}
                   onStartExam={handleStartExam}
                   onPurchaseExam={handlePurchaseExam}
+                  processingExamIds={processingExamIds}
                 />
               )}
 
@@ -318,6 +294,7 @@ export default function ExamCatalogueClient({
                     onStartExam={handleStartExam}
                     onViewDetails={viewExamDetails}
                     onPurchaseExam={handlePurchaseExam}
+                    processingExamIds={processingExamIds}
                   />
 
                   {/* Pagination */}
@@ -343,6 +320,7 @@ export default function ExamCatalogueClient({
             isOpen={isPurchaseModalOpen}
             onOpenChange={setIsPurchaseModalOpen}
             onPaymentSuccess={handlePaymentSuccess}
+            setProcessingExamIds={setProcessingExamIds}
           />
         )}
       </div>
