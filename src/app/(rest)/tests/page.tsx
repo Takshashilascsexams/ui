@@ -8,7 +8,6 @@ import LoadingSkeleton from "@/components/tests/loading_skeleton";
 async function ExamCatalogue() {
   unstable_noStore();
   const exams = await fetchCategorizedExams();
-  console.log(exams);
 
   // Extract featured exams (if any)
   const featured = exams.data.categorizedExams["FEATURED"] || [];
@@ -67,7 +66,7 @@ async function ExamCatalogue() {
 // Page component with suspense for loading state
 export default function ExamsPage() {
   return (
-    <div className="w-full min-h-screen bg-gray-50">
+    <div className="w-full min-h-screen">
       <Suspense
         fallback={
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
