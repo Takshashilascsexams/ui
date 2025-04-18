@@ -31,3 +31,10 @@ export type newExamDataType = {
   discountPrice: string;
   accessPeriod: string;
 };
+
+export type currentAffairsAndBlogsSectionDataType = {
+  id: number;
+  title: string;
+  description: string;
+  href: string;
+};

@@ -1,9 +1,6 @@
 import { unstable_noStore } from "next/cache";
-import Hero from "@/components/home/hero";
-import SectionsTemplate from "@/components/home/sections_template";
-import NotificationSection from "@/components/home/notification_section";
-import TestSeriesSection from "@/components/home/test_series_section";
 import { fetchTestSeries } from "@/actions/client/fetchTestSeries";
+import HomeLayoutEducational from "@/components/home/home_layout_educational";
 import {
   latestBlogsSectionData,
   currentAffairsSectionData,
@@ -17,22 +14,11 @@ export default async function Home() {
   const testSeries = await fetchTestSeries();
 
   return (
-    <div className="w-full h-full">
-      <Hero />
-      <NotificationSection notificationText={notificationText} />
-      <TestSeriesSection testSeries={testSeries} />
-      <SectionsTemplate
-        title="Latest Blogs"
-        data={latestBlogsSectionData}
-        buttonTitle="Read More"
-        buttonColor="green"
-      />
-      <SectionsTemplate
-        title="Current Affairs"
-        data={currentAffairsSectionData}
-        buttonTitle="Read More"
-        buttonColor="red"
-      />
-    </div>
+    <HomeLayoutEducational
+      notificationText={notificationText}
+      testSeries={testSeries}
+      latestBlogsData={latestBlogsSectionData}
+      currentAffairsData={currentAffairsSectionData}
+    />
   );
 }

@@ -26,7 +26,7 @@ export default function SearchBar({
             size={30}
             type="text"
             placeholder="Search exams..."
-            className="pl-10 pr-8 py-2 w-full rounded-lg"
+            className="pl-10 pr-8 py-2 w-full rounded-full"
             value={searchQuery}
             onChange={onSearch}
             aria-label="Search exams"
@@ -47,7 +47,7 @@ export default function SearchBar({
             onClick={onFilterToggle}
             aria-label="Show filters"
           >
-            <Filter className="h-5 w-5 text-gray-600" />
+            <Filter className="h-4 w-4 text-gray-600" />
           </button>
         )}
       </div>
