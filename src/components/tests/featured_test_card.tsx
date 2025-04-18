@@ -101,7 +101,7 @@ export default function FeaturedTestCard({
           <Button
             onClick={() => onPurchaseExam(exam.id)}
             disabled={isProcessing}
-            className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+            className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
           >
             <CreditCard className="ml-1 h-4 w-4 mr-1" />
             Purchase
@@ -110,7 +110,7 @@ export default function FeaturedTestCard({
           <Button
             onClick={() => onStartExam(exam.id)}
             disabled={isProcessing}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
           >
             Start Exam
             <ArrowUpRight className="ml-1 h-4 w-4" />

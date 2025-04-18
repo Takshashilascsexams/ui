@@ -112,7 +112,7 @@ export default function ExamCard({
           <Button
             onClick={() => onViewDetails(exam.id)}
             disabled={isProcessing}
-            className="flex-1 py-2 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-full text-sm font-medium transition-colors"
           >
             View Details
           </Button>
@@ -121,7 +121,7 @@ export default function ExamCard({
             <Button
               onClick={() => onPurchaseExam(exam.id)}
               disabled={isProcessing}
-              className="flex-1 py-2 px-4 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+              className="flex-1 py-2 px-4 bg-amber-600 hover:bg-amber-700 rounded-full text-sm font-medium transition-colors flex items-center justify-center"
             >
               <CreditCard className="h-4 w-4 mr-1" />
               Purchase
@@ -130,7 +130,7 @@ export default function ExamCard({
             <Button
               onClick={() => onStartExam(exam.id)}
               disabled={isProcessing}
-              className="flex-1 py-2 px-4 bg-gray-800 hover:bg-gray-900 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+              className="flex-1 py-2 px-4 bg-gray-800 hover:bg-gray-900 rounded-full text-sm font-medium transition-colors flex items-center justify-center"
             >
               <Play className="h-4 w-4 mr-1" />
               Start Now

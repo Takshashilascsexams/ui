@@ -63,32 +63,34 @@ export default function Header({ avatar, fullName }: HeaderPropType) {
   const username = fullName.split(" ")[0].slice(0, 10);
 
   return (
-    <div className="w-full px-7 lg:px-44 py-1 flex items-center justify-between">
-      <Link
-        href={"/"}
-        className="w-[70px] h-[70px] lg:w-[100px] lg:h-[100px] relative"
-      >
-        <CustomImage
-          src={"/images/logo.webp"}
-          alt="logo"
-          sizes="(max-width: 768px) 70px, (min-width: 769px) 100px"
-        />
-      </Link>
+    <div className="w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1 flex items-center justify-between">
+        <Link
+          href={"/"}
+          className="w-[100px] h-[100px] lg:w-[120px] lg:h-[120px] relative"
+        >
+          <CustomImage
+            src={"/images/logo.webp"}
+            alt="logo"
+            sizes="(max-width: 768px) 100px, (min-width: 769px) 120px"
+          />
+        </Link>
 
-      <div className="flex items-center justify-center gap-5">
-        <p className="text-sm">Hello, {username}</p>
+        <div className="flex items-center justify-center gap-5">
+          <p className="text-sm">Hello, {username}</p>
 
-        <div className="flex items-center justify-center">
-          <ProfileDropdownMenu>
-            <button className="border-[1px] border-slate-300 rounded-full">
-              <Avatar className="w-[30px] h-[30px]">
-                <AvatarImage src={avatar} alt="avatar" />
-                <AvatarFallback>
-                  {fullName.slice(0, 1).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </ProfileDropdownMenu>
+          <div className="flex items-center justify-center">
+            <ProfileDropdownMenu>
+              <button className="border-[1px] border-slate-300 rounded-full">
+                <Avatar className="w-[30px] h-[30px]">
+                  <AvatarImage src={avatar} alt="avatar" />
+                  <AvatarFallback>
+                    {fullName.slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </ProfileDropdownMenu>
+          </div>
         </div>
       </div>
     </div>
