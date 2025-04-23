@@ -12,6 +12,7 @@ import LoadingSkeleton from "./loading_skeleton";
 import EmptyState from "./empty_state";
 import Pagination from "./pagination";
 import PurchaseModal from "./purchase_modal";
+import BundleList from "./bundle_list";
 import { toast } from "sonner";
 import {
   revalidateCategorizedExams,
@@ -27,6 +28,7 @@ import {
 interface ExamCatalogueClientProps {
   initialExams: ExamType[];
   initialFeaturedExams: ExamType[];
+  initialBundledExams: ExamType[];
   categories: CategoryType[];
 }
 
@@ -34,12 +36,15 @@ export default function ExamCatalogueClient({
   initialExams,
   initialFeaturedExams,
   categories,
+  initialBundledExams,
 }: ExamCatalogueClientProps) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isLoading] = useState(false);
   const [exams, setExams] = useState<ExamType[]>(initialExams);
   const [featuredExams, setFeaturedExams] =
     useState<ExamType[]>(initialFeaturedExams);
+  const [bundledExams, setBundledExams] =
+    useState<ExamType[]>(initialBundledExams);
   const [filteredExams, setFilteredExams] = useState<ExamType[]>(initialExams);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(
@@ -47,8 +52,6 @@ export default function ExamCatalogueClient({
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-
-  // Add these state variables
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [processingExamIds, setProcessingExamIds] = useState<string[]>([]);
@@ -144,7 +147,9 @@ export default function ExamCatalogueClient({
 
   // Add a handle purchase function
   const handlePurchaseExam = (examId: string) => {
-    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+    const exam = [...exams, ...featuredExams, ...bundledExams].find(
+      (e) => e.id === examId
+    );
 
     if (!exam) {
       toast.error("Exam not found");
@@ -168,7 +173,9 @@ export default function ExamCatalogueClient({
       if (freshData.status === "success") {
         // Extract all non-featured exams
         const allExams = Object.entries(freshData.data.categorizedExams)
-          .filter(([category]) => category !== "FEATURED")
+          .filter(
+            ([category]) => category !== "FEATURED" && category !== "BUNDLE"
+          )
           .flatMap(([, exams]) =>
             exams.map((exam) => ({
               id: exam._id,
@@ -182,12 +189,14 @@ export default function ExamCatalogueClient({
               date: exam.createdAt,
               isFeatured: exam.isFeatured,
               isPremium: exam.isPremium,
+              isPartOfBundle: exam.isPartOfBundle ? true : false,
               price: exam.price,
               discountPrice: exam.discountPrice,
               accessPeriod: exam.accessPeriod,
               hasAccess: exam.hasAccess ?? false,
             }))
-          );
+          )
+          .filter((exam) => !exam.isPartOfBundle);
 
         // Extract featured exams
         const featured = (
@@ -210,9 +219,33 @@ export default function ExamCatalogueClient({
           hasAccess: exam.hasAccess ?? false,
         }));
 
+        // Extract featured exams
+        const bundled = (freshData.data.categorizedExams["BUNDLE"] || []).map(
+          (exam) => ({
+            id: exam._id,
+            title: exam.title,
+            description: exam.description,
+            category: exam.category,
+            duration: exam.duration,
+            totalMarks: exam.totalMarks,
+            difficulty: exam.difficultyLevel,
+            passPercentage: exam.passMarkPercentage,
+            date: exam.createdAt,
+            isFeatured: exam.isFeatured,
+            isPremium: exam.isPremium,
+            isPartOfBundle: exam.isPartOfBundle ? true : false,
+            bundledExams: exam.bundledExams?.length ? exam.bundledExams : [],
+            price: exam.price,
+            discountPrice: exam.discountPrice,
+            accessPeriod: exam.accessPeriod,
+            hasAccess: exam.hasAccess ?? false,
+          })
+        );
+
         // Update state with fresh data
         setExams(allExams);
         setFeaturedExams(featured);
+        setBundledExams(bundled);
 
         // Apply current filters to the fresh data
         const filtered = applyFilters(allExams, activeCategory, searchQuery);
@@ -259,6 +292,18 @@ export default function ExamCatalogueClient({
           <LoadingSkeleton />
         ) : (
           <>
+            {/* Bundle exams - shown only on "all" tab with no search */}
+            {!searchQuery &&
+              activeCategory === "all" &&
+              bundledExams.length > 0 && (
+                <BundleList
+                  bundles={bundledExams}
+                  onStartExam={handleStartExam}
+                  onPurchaseExam={handlePurchaseExam}
+                  processingExamIds={processingExamIds}
+                />
+              )}
+
             {/* Featured exams - shown only on "all" tab with no search */}
             {!searchQuery &&
               activeCategory === "all" &&
@@ -273,7 +318,7 @@ export default function ExamCatalogueClient({
 
             {/* Exam listings */}
             <div>
-              <div className="flex justify-between items-center mb-4 md:mb-6">
+              <div className="flex justify-between items-center mb-6 lg:mb-8">
                 <h2 className="text-lg md:text-xl font-bold text-gray-800">
                   {searchQuery
                     ? "Search Results"

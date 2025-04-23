@@ -14,7 +14,7 @@ export default function CategoryTabs({
   onCategoryChange,
 }: CategoryTabsProps) {
   return (
-    <div className="mb-6 md:mb-8">
+    <div className="mb-10 lg:mb-16">
       <div className="flex overflow-x-auto pb-2 space-x-2 scrollbar-hide">
         {categories.map((category) => {
           return (

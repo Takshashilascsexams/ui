@@ -109,6 +109,7 @@ export default function PurchaseModal({
         orderId: response.razorpay_order_id,
         razorpaySignature: response.razorpay_signature,
         examId: exam.id,
+        isBundle: exam.bundledExams?.length ? true : false,
       };
 
       const token = await getClerkToken();
@@ -201,7 +202,10 @@ export default function PurchaseModal({
       setProcessingExamIds((prev) => [...prev, exam.id]);
 
       // Initiate payment through our service
-      const response = await initiatePayment(exam.id);
+      const response = await initiatePayment(
+        exam.id,
+        exam.bundledExams?.length ? true : false
+      );
 
       // Store payment data for later use
       setPaymentData(response.data);
@@ -231,12 +235,14 @@ export default function PurchaseModal({
       />
 
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="w-4/5 lg:w-3/5 xl:w-2/5 rounded-lg">
+        <DialogContent className="w-[400px] lg:w-4/5 xl:w-2/5 rounded-lg">
           {step === "details" && (
             <>
               <DialogHeader>
-                <DialogTitle>Purchase Premium Exam</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-start">
+                  Purchase Premium Exam
+                </DialogTitle>
+                <DialogDescription className="text-start">
                   {"You're about to purchase access to this premium exam."}
                 </DialogDescription>
               </DialogHeader>
@@ -291,13 +297,17 @@ export default function PurchaseModal({
               </div>
 
               <DialogFooter className="flex sm:justify-between gap-4">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => onOpenChange(false)}
+                >
                   Cancel
                 </Button>
                 <Button
                   onClick={handlePurchase}
                   disabled={isLoading || !scriptLoaded}
-                  className="bg-amber-600 hover:bg-amber-700"
+                  className="bg-amber-600 hover:bg-amber-700 rounded-full"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   Proceed to Payment

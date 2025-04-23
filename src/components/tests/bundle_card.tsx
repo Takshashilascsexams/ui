@@ -1,0 +1,195 @@
+import React, { useState } from "react";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { ChevronDown, ChevronUp, CreditCard, Play } from "lucide-react";
+import { ExamType } from "@/types/examTypes";
+
+interface BundleCardProps {
+  bundle: ExamType;
+  onStartExam: (examId: string) => void;
+  onPurchaseExam: (bundleId: string) => void;
+  isProcessing?: boolean;
+}
+
+export default function BundleCard({
+  bundle,
+  onStartExam,
+  onPurchaseExam,
+  isProcessing = false,
+}: BundleCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Check if user has access to the entire bundle
+  const hasCompleteAccess = bundle.hasAccess;
+
+  // Count how many exams in the bundle the user already has access to
+  const accessibleExamsCount =
+    bundle.bundledExams?.filter((exam) => exam.hasAccess).length || 0;
+  const totalExamsCount = bundle.bundledExams?.length || 0;
+  const partialAccess =
+    accessibleExamsCount > 0 && accessibleExamsCount < totalExamsCount;
+
+  // Calculate savings percentage
+  const savingsPercentage = Math.round(
+    100 - ((bundle.discountPrice as number) / bundle.price) * 100
+  );
+
+  // Handle toggling the expanded state
+  const toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+      <div className="p-4 sm:p-5">
+        <div className="flex justify-between items-start mb-4">
+          <div className="w-full flex items-center justify-between gap-2">
+            <h3 className="font-bold text-gray-900 line-clamp-1">
+              {bundle.title}
+            </h3>
+            <Badge
+              variant="outline"
+              className="gray-indigo-800 border border-slate-200"
+            >
+              Bundle
+            </Badge>
+          </div>
+        </div>
+
+        <div className="h-14">
+          <p className="text-sm text-gray-600 mb-4">{bundle.description}</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-y-2 text-xs text-gray-600 mb-4">
+          <div className="col-span-1">
+            <span className="font-medium text-gray-700">Bundle Contents:</span>
+          </div>
+          <div className="col-span-2">
+            <span>{bundle.bundledExams?.length || 0} exams</span>
+          </div>
+
+          <div className="col-span-1">
+            <span className="font-medium text-gray-700">Total Duration:</span>
+          </div>
+          <div className="col-span-2">
+            <span>{bundle.duration} mins</span>
+          </div>
+
+          <div className="col-span-1">
+            <span className="font-medium text-gray-700">Access Period:</span>
+          </div>
+          <div className="col-span-2">
+            <span>{bundle.accessPeriod} days</span>
+          </div>
+        </div>
+
+        <div className={`mb-4 p-3 bg-indigo-50 rounded-md`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Bundle Price</p>
+              <p className="text-xs text-gray-600">Save {savingsPercentage}%</p>
+            </div>
+            <div className="text-right">
+              <p className={`text-lg font-semibold text-indigo-800`}>
+                ₹{bundle.discountPrice}
+              </p>
+              <p className="text-xs text-gray-500 line-through">
+                ₹{bundle.price}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Partial Access Notice */}
+        {partialAccess && !hasCompleteAccess && (
+          <div className="mb-4 p-3 bg-yellow-50 rounded-md">
+            <p className="text-xs text-yellow-700">
+              You already have access to {accessibleExamsCount} out of{" "}
+              {totalExamsCount} exams in this bundle.
+            </p>
+          </div>
+        )}
+
+        {/* Bundle Contents Section */}
+        <div className="mt-4">
+          <button
+            onClick={toggleExpanded}
+            className={`flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-left text-indigo-800 border-b-[1px] border-slate-200 focus:outline-none`}
+          >
+            <span>
+              View Bundle Contents ({bundle.bundledExams?.length || 0} exams)
+            </span>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+
+          {isExpanded && (
+            <div className="mt-3 space-y-2 border-l-2 border-gray-200 pl-4">
+              {bundle.bundledExams?.map((exam) => (
+                <div
+                  key={exam._id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    <div
+                      className={`w-2 h-2 rounded-full mr-2 ${
+                        exam.hasAccess ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                    ></div>
+                    <span className="text-sm">{exam.title}</span>
+                  </div>
+                  {exam.hasAccess && (
+                    <span className="text-xs text-green-600 font-medium">
+                      Access Granted
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Buttons */}
+        <div className="mt-4">
+          {!hasCompleteAccess ? (
+            <Button
+              onClick={() => onPurchaseExam(bundle.id)}
+              disabled={isProcessing}
+              className="w-full py-2 px-4 bg-indigo-700 hover:bg-indigo-800 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Purchase Bundle
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-2 bg-green-50 rounded-md text-xs">
+                <p className="text-green-700 font-medium text-start">
+                  You have access to all exams in this bundle
+                </p>
+              </div>
+              <Button
+                onClick={() =>
+                  onStartExam(
+                    bundle.bundledExams?.[0]?._id ||
+                      bundle.bundledExams?.[0]?._id ||
+                      ""
+                  )
+                }
+                disabled={isProcessing}
+                className="w-full py-2 px-4 bg-gray-800 hover:bg-gray-900 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Start Now
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

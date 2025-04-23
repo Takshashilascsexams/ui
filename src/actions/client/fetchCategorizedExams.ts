@@ -3,39 +3,14 @@
 import { revalidateTag } from "next/cache";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { unstable_noStore } from "next/cache";
-
-export type ExamType = {
-  _id: string;
-  title: string;
-  description: string;
-  category: string;
-  duration: number;
-  totalMarks: number;
-  difficultyLevel: "EASY" | "MEDIUM" | "HARD";
-  passMarkPercentage: number;
-  createdAt: string;
-  isActive: boolean;
-  isFeatured: boolean;
-  isPremium: boolean;
-  price: number;
-  discountPrice: number;
-  accessPeriod: number;
-  hasAccess?: boolean;
-};
-
-export type PaginationType = {
-  total: number;
-  page: number;
-  pages: number;
-  limit: number;
-};
+import { ApiResponseExamType, PaginationType } from "@/types/examTypes";
 
 export type CategorizedExamsResponse = {
   status: string;
   fromCache: boolean;
   pagination: PaginationType;
   data: {
-    categorizedExams: Record<string, ExamType[]>;
+    categorizedExams: Record<string, ApiResponseExamType[]>;
   };
 };
 
