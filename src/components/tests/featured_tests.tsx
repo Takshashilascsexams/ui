@@ -53,8 +53,8 @@ export default function FeaturedExams({
   // For mobile: show one exam at a time with dots navigation
   if (isMobile) {
     return (
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+      <div className="mb-10">
+        <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
           <Sparkles className="mr-2 h-5 w-5 text-yellow-500" />
           Featured Exams
         </h2>
@@ -97,8 +97,8 @@ export default function FeaturedExams({
 
   // For desktop: grid layout
   return (
-    <div className="mb-10">
-      <h2 className="text-xl font-bold text-gray-800 mb-5 flex items-center">
+    <div className="mb-16">
+      <h2 className="text-xl font-bold text-gray-800 mb-8 flex items-center">
         <Sparkles className="mr-2 h-5 w-5 text-yellow-500" />
         Featured Exams
       </h2>

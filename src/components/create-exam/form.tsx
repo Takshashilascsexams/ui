@@ -10,6 +10,7 @@ import { difficultyLevel, testCategory } from "@/utils/arrays";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
+import { Checkbox } from "../ui/checkbox";
 import {
   Form,
   FormControl,
@@ -120,6 +121,8 @@ const addNewTestFormSchema = z
       }
     ),
     accessPeriod: z.string(),
+    isPartOfBundle: z.boolean(),
+    bundleTag: z.string(),
   })
   .refine(
     (data) => {
@@ -188,11 +191,14 @@ export default function CreateExamForm() {
       price: "100",
       discountPrice: "0",
       accessPeriod: "0",
+      isPartOfBundle: false,
+      bundleTag: "",
     },
   });
 
   // Watch the isPremium field to conditionally show/hide price fields
   const isPremium = form.watch("isPremium");
+  const isPartOfBundle = form.watch("isPartOfBundle");
 
   const onSubmit = async (values: z.infer<typeof addNewTestFormSchema>) => {
     try {
@@ -203,6 +209,11 @@ export default function CreateExamForm() {
         values.price = "";
         values.discountPrice = "";
         values.accessPeriod = "0";
+      }
+
+      // If not part of a bundle, clear bundle tag
+      if (!values.isPartOfBundle) {
+        values.bundleTag = "";
       }
 
       const clerkToken = await getClerkToken();
@@ -684,6 +695,48 @@ export default function CreateExamForm() {
                 )}
               />
             </div>
+          )}
+
+          {/* Is part of bundle */}
+          <FormField
+            control={form.control}
+            name="isPartOfBundle"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Checkbox
+                    id="isPartOfBundle"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="ml-2">
+                  This exam is part of a bundle
+                </FormLabel>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Bundle Tag */}
+          {isPartOfBundle && (
+            <FormField
+              control={form.control}
+              name="bundleTag"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bundle tag name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Bundle tag name"
+                      className="text-sm"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
 
           {/* button */}

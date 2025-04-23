@@ -11,11 +11,13 @@ async function ExamCatalogue() {
 
   // Extract featured exams (if any)
   const featured = exams.data.categorizedExams["FEATURED"] || [];
+  const bundled = exams.data.categorizedExams["BUNDLE"] || [];
 
   // Combine all other exams
   const allExams = Object.entries(exams.data.categorizedExams)
-    .filter(([category]) => category !== "FEATURED")
-    .flatMap(([, exams]) => exams);
+    .filter(([category]) => category !== "FEATURED" && category !== "BUNDLE")
+    .flatMap(([, exams]) => exams)
+    .filter((exam) => !exam.isPartOfBundle);
 
   // Transform data to match the client component's expected structure
   const transformedExams = allExams.map((exam) => ({
@@ -54,10 +56,30 @@ async function ExamCatalogue() {
     hasAccess: exam.hasAccess ?? false,
   }));
 
+  const transformedBundle = bundled.map((exam) => ({
+    id: exam._id,
+    title: exam.title,
+    description: exam.description,
+    bundledExams: exam.bundledExams,
+    category: exam.category,
+    duration: exam.duration,
+    totalMarks: exam.totalMarks,
+    difficulty: exam.difficultyLevel,
+    passPercentage: exam.passMarkPercentage,
+    isFeatured: exam.isFeatured,
+    isPremium: exam.isPremium,
+    price: exam.price,
+    discountPrice: exam.discountPrice,
+    accessPeriod: exam.accessPeriod,
+    hasAccess: exam.hasAccess ?? false,
+    date: exam.createdAt,
+  }));
+
   return (
     <ExamCatalogueClient
       initialExams={transformedExams}
       initialFeaturedExams={transformedFeatured}
+      initialBundledExams={transformedBundle}
       categories={CATEGORIES}
     />
   );
