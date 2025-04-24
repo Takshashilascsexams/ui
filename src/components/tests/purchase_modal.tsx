@@ -109,7 +109,6 @@ export default function PurchaseModal({
         orderId: response.razorpay_order_id,
         razorpaySignature: response.razorpay_signature,
         examId: exam.id,
-        isBundle: exam.bundledExams?.length ? true : false,
       };
 
       const token = await getClerkToken();
@@ -235,7 +234,7 @@ export default function PurchaseModal({
       />
 
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[400px] lg:w-4/5 xl:w-2/5 rounded-lg">
+        <DialogContent className="w-[90%] lg:w-4/5 xl:w-2/5 rounded-lg">
           {step === "details" && (
             <>
               <DialogHeader>
