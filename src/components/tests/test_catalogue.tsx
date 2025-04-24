@@ -14,6 +14,7 @@ import Pagination from "./pagination";
 import PurchaseModal from "./purchase_modal";
 import BundleList from "./bundle_list";
 import { toast } from "sonner";
+import { Layers } from "lucide-react";
 import {
   revalidateCategorizedExams,
   fetchCategorizedExams,
@@ -319,10 +320,17 @@ export default function ExamCatalogueClient({
             {/* Exam listings */}
             <div>
               <div className="flex justify-between items-center mb-6 lg:mb-8">
-                <h2 className="text-lg md:text-xl font-bold text-gray-800">
-                  {searchQuery
-                    ? "Search Results"
-                    : categories.find((c) => c.id === activeCategory)?.name}
+                <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center">
+                  {searchQuery ? (
+                    "Search Results"
+                  ) : (
+                    <>
+                      <Layers className="mr-2 h-5 w-5 text-indigo-500" />
+                      {
+                        categories.find((c) => c.id === activeCategory)?.name
+                      }{" "}
+                    </>
+                  )}
                 </h2>
                 <div className="text-xs md:text-sm text-gray-500">
                   {filteredExams.length}{" "}
