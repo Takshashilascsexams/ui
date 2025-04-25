@@ -5,14 +5,14 @@ import BundleCard from "./bundle_card";
 
 interface BundleProps {
   bundles: ExamType[];
-  onStartExam: (examId: string) => void;
+  onOpenBundle: (examId: string) => void;
   onPurchaseExam: (examId: string) => void;
   processingExamIds?: string[];
 }
 
 export default function BundleList({
   bundles,
-  onStartExam,
+  onOpenBundle,
   onPurchaseExam,
   processingExamIds = [],
 }: BundleProps) {
@@ -31,7 +31,7 @@ export default function BundleList({
             <BundleCard
               key={bundle.id}
               bundle={bundle}
-              onStartExam={onStartExam}
+              onOpenBundle={onOpenBundle}
               onPurchaseExam={onPurchaseExam}
               isProcessing={processingExamIds.includes(bundle.id)}
             />

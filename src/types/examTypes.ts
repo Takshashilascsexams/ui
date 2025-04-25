@@ -10,6 +10,32 @@ export interface BundledExam {
   hasAccess: boolean;
 }
 
+export interface BundleDetailsBundledExam {
+  id: string;
+  // id: string; // For consistency with the ExamType
+  title: string;
+  description: string;
+  category: string;
+  duration: number;
+  totalMarks: number;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  passPercentage: number;
+  date: string;
+  isFeatured: boolean;
+  isPremium: boolean;
+  price: number;
+  discountPrice?: number;
+  accessPeriod?: number;
+  hasAccess: boolean;
+}
+
+// Bundle specific type
+export type BundleType = ExamType & {
+  isBundle: boolean;
+  bundleTag: string;
+  bundledExams: BundleDetailsBundledExam[];
+};
+
 // Exam type
 export type ExamType = {
   id: string;
@@ -53,14 +79,6 @@ export type BundleExamType = {
   _id: string;
 };
 
-// Pagination type
-export type PaginationType = {
-  total: number;
-  page: number;
-  pages: number;
-  limit: number;
-};
-
 // API response type for fetch categorized exams
 export type ApiResponseExamType = {
   _id: string;
@@ -81,4 +99,52 @@ export type ApiResponseExamType = {
   accessPeriod: number;
   hasAccess: boolean;
   bundledExams?: BundleExamType[];
+};
+
+// API response type for fetch bundle details
+export type ApiBundleResponseType = {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  duration: number;
+  totalMarks: number;
+  difficultyLevel: "EASY" | "MEDIUM" | "HARD";
+  passMarkPercentage: number;
+  createdAt: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  isPremium: boolean;
+  price: number;
+  discountPrice: number;
+  accessPeriod: number;
+  isBundle: boolean;
+  bundleTag: string;
+  hasAccess: boolean;
+  bundledExams: {
+    _id: string;
+    title: string;
+    description: string;
+    category: string;
+    duration: number;
+    totalMarks: number;
+    difficultyLevel: "EASY" | "MEDIUM" | "HARD";
+    passMarkPercentage: number;
+    isFeatured: boolean;
+    isPremium: boolean;
+    isPartOfBundle?: boolean;
+    discountPrice?: number;
+    hasAccess: boolean;
+    accessPeriod?: number;
+    participants?: number;
+    bundledExams?: BundleDetailsBundledExam[];
+  }[];
+};
+
+// Pagination type
+export type PaginationType = {
+  total: number;
+  page: number;
+  pages: number;
+  limit: number;
 };
