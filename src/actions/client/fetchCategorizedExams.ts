@@ -21,6 +21,7 @@ export type CategorizedExamsResponse = {
  * @param limit Number of items per page (defaults to 6)
  * @returns Categorized exams with pagination information
  */
+
 export async function fetchCategorizedExams(): Promise<CategorizedExamsResponse> {
   unstable_noStore();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ITEMS_PER_PAGE } from "@/utils/constants";
 import { ExamType, CategoryType } from "@/types/examTypes";
 import { navigateToExamRules } from "@/services/tests.services";
@@ -56,6 +57,8 @@ export default function ExamCatalogueClient({
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [processingExamIds, setProcessingExamIds] = useState<string[]>([]);
+
+  const router = useRouter();
 
   // Initialize state client-side only after component mounts
   useEffect(() => {
@@ -270,6 +273,13 @@ export default function ExamCatalogueClient({
     }
   };
 
+  // Open bundle exam
+  const handleOpenBundle = (bundleId: string) => {
+    if (!bundleId) return;
+
+    router.push(`/tests/${bundleId}`);
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
@@ -299,7 +309,7 @@ export default function ExamCatalogueClient({
               bundledExams.length > 0 && (
                 <BundleList
                   bundles={bundledExams}
-                  onStartExam={handleStartExam}
+                  onOpenBundle={handleOpenBundle}
                   onPurchaseExam={handlePurchaseExam}
                   processingExamIds={processingExamIds}
                 />

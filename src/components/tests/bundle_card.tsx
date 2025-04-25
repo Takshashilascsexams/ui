@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { ChevronDown, ChevronUp, CreditCard, Play } from "lucide-react";
+import { ChevronDown, ChevronUp, CreditCard, ArrowRight } from "lucide-react";
 import { ExamType } from "@/types/examTypes";
 
 interface BundleCardProps {
   bundle: ExamType;
-  onStartExam: (examId: string) => void;
+  onOpenBundle: (examId: string) => void;
   onPurchaseExam: (bundleId: string) => void;
   isProcessing?: boolean;
 }
 
 export default function BundleCard({
   bundle,
-  onStartExam,
+  onOpenBundle,
   onPurchaseExam,
   isProcessing = false,
 }: BundleCardProps) {
@@ -173,18 +173,12 @@ export default function BundleCard({
                 </p>
               </div>
               <Button
-                onClick={() =>
-                  onStartExam(
-                    bundle.bundledExams?.[0]?._id ||
-                      bundle.bundledExams?.[0]?._id ||
-                      ""
-                  )
-                }
+                onClick={() => onOpenBundle(bundle.id)}
                 disabled={isProcessing}
                 className="w-full py-2 px-4 bg-gray-800 hover:bg-gray-900 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
               >
-                <Play className="h-4 w-4 mr-2" />
-                Start Now
+                Open Bundle
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           )}
