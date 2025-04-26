@@ -5,6 +5,7 @@ import FeaturedTestCard from "./featured_test_card";
 
 interface FeaturedExamsProps {
   featuredExams: ExamType[];
+  onViewDetails?: (examId: string) => void;
   onStartExam: (examId: string) => void;
   onPurchaseExam: (examId: string) => void;
   processingExamIds?: string[];
@@ -12,6 +13,7 @@ interface FeaturedExamsProps {
 
 export default function FeaturedExams({
   featuredExams,
+  onViewDetails,
   onStartExam,
   onPurchaseExam = () => {},
   processingExamIds = [],
@@ -97,7 +99,7 @@ export default function FeaturedExams({
 
   // For desktop: grid layout
   return (
-    <div className="mb-16">
+    <div className="mb-10 lg:mb-16">
       <h2 className="text-xl font-bold text-gray-800 mb-8 flex items-center">
         <Sparkles className="mr-2 h-5 w-5 text-yellow-500" />
         Featured Exams
@@ -108,6 +110,7 @@ export default function FeaturedExams({
           <FeaturedTestCard
             key={exam.id}
             exam={exam}
+            onViewDetails={onViewDetails}
             onStartExam={onStartExam}
             onPurchaseExam={onPurchaseExam}
             hasAccess={exam.hasAccess ?? !exam.isPremium}

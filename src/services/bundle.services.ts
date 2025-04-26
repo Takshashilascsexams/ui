@@ -31,7 +31,7 @@ export const getBundleDetails = async (
     );
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 401) {
         return null;
       }
       const error = await response.json();
@@ -39,7 +39,6 @@ export const getBundleDetails = async (
     }
 
     const data = await response.json();
-    console.log(data);
     const bundleData: ApiBundleResponseType = data.data.bundle;
 
     // Transform API response to our frontend BundleType

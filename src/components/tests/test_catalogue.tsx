@@ -16,6 +16,7 @@ import PurchaseModal from "./purchase_modal";
 import BundleList from "./bundle_list";
 import { toast } from "sonner";
 import { Layers } from "lucide-react";
+import ExamDetailsDialog from "./exam_details_dialog";
 import {
   revalidateCategorizedExams,
   fetchCategorizedExams,
@@ -55,6 +56,7 @@ export default function ExamCatalogueClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [processingExamIds, setProcessingExamIds] = useState<string[]>([]);
 
@@ -124,10 +126,14 @@ export default function ExamCatalogueClient({
     setCurrentPage(1);
   };
 
-  // View exam details (placeholder)
+  // View exam details - Updated to show details dialog
   const viewExamDetails = (examId: string) => {
-    console.log(`View details for exam ${examId}`);
-    // Implement navigation to details page
+    const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
+
+    if (exam) {
+      setSelectedExam(exam);
+      setIsDetailsDialogOpen(true);
+    }
   };
 
   // Modify the handleStartExam function to use the hasAccess property
@@ -321,6 +327,7 @@ export default function ExamCatalogueClient({
               featuredExams.length > 0 && (
                 <FeaturedExams
                   featuredExams={featuredExams}
+                  onViewDetails={viewExamDetails}
                   onStartExam={handleStartExam}
                   onPurchaseExam={handlePurchaseExam}
                   processingExamIds={processingExamIds}
@@ -374,6 +381,17 @@ export default function ExamCatalogueClient({
               )}
             </div>
           </>
+        )}
+
+        {/* Exam details dialog */}
+        {selectedExam && (
+          <ExamDetailsDialog
+            exam={selectedExam}
+            isOpen={isDetailsDialogOpen}
+            onOpenChange={setIsDetailsDialogOpen}
+            onPurchaseExam={handlePurchaseExam}
+            isProcessing={processingExamIds.includes(selectedExam.id)}
+          />
         )}
 
         {/* Purchase modal for premium exams */}
