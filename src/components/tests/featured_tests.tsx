@@ -64,6 +64,7 @@ export default function FeaturedExams({
         <div>
           <FeaturedTestCard
             exam={featuredExams[currentIndex]}
+            onViewDetails={onViewDetails}
             onStartExam={onStartExam}
             onPurchaseExam={onPurchaseExam}
             hasAccess={

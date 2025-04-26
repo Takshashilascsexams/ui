@@ -70,6 +70,7 @@ export default function BundledExamsList({
                 hasAccess: hasAccess,
               }}
               hasAccess={hasAccess}
+              showDetailsButton={false}
               onStartExam={handleStartExam}
             />
           );

@@ -38,6 +38,7 @@ export default function ExamList({
           exam={exam}
           hasAccess={exam.hasAccess ?? !exam.isPremium} // Use hasAccess from API or default for non-premium
           onStartExam={onStartExam}
+          showDetailsButton={true}
           onViewDetails={onViewDetails}
           onPurchaseExam={onPurchaseExam}
           isProcessing={processingExamIds.includes(exam.id)}

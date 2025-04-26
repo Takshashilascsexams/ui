@@ -9,6 +9,7 @@ interface ExamCardProps {
   exam: ExamType;
   hasAccess: boolean;
   onStartExam: (examId: string) => void;
+  showDetailsButton?: boolean;
   onViewDetails?: (examId: string) => void;
   onPurchaseExam?: (examId: string) => void;
   isProcessing?: boolean;
@@ -18,6 +19,7 @@ export default function ExamCard({
   exam,
   hasAccess,
   onStartExam,
+  showDetailsButton,
   onViewDetails = () => {},
   onPurchaseExam = () => {},
   isProcessing = false,
@@ -109,13 +111,15 @@ export default function ExamCard({
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => onViewDetails(exam.id)}
-            disabled={isProcessing}
-            className="flex-1 py-2 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-full text-sm font-medium transition-colors"
-          >
-            View Details
-          </Button>
+          {showDetailsButton && typeof onViewDetails === "function" && (
+            <Button
+              onClick={() => onViewDetails(exam.id)}
+              disabled={isProcessing}
+              className="flex-1 py-2 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-full text-sm font-medium transition-colors"
+            >
+              View Details
+            </Button>
+          )}
 
           {exam.isPremium && !hasAccess ? (
             <Button
