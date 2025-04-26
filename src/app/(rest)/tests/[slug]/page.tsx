@@ -31,7 +31,6 @@ export default async function BundlePage({ params }: PageProps) {
           {/* List of Bundled Exams as Cards */}
           <BundledExamsList
             bundledExams={bundleData.bundledExams || []}
-            bundleId={bundleData.id || bundleData.id || ""}
             hasAccess={bundleData.hasAccess}
           />
 

@@ -1,4 +1,7 @@
 import React from "react";
+import { ExamType } from "@/types/examTypes";
+import { getDifficultyColor } from "@/utils/tests.utils";
+import { Button } from "../ui/button";
 import {
   Clock,
   Award,
@@ -6,13 +9,11 @@ import {
   ArrowUpRight,
   CreditCard,
 } from "lucide-react";
-import { ExamType } from "@/types/examTypes";
-import { getDifficultyColor } from "@/utils/tests.utils";
-import { Button } from "../ui/button";
 
 interface FeaturedExamProps {
   exam: ExamType;
   hasAccess: boolean;
+  onViewDetails?: (examId: string) => void;
   onStartExam: (examId: string) => void;
   onPurchaseExam?: (examId: string) => void;
   isProcessing?: boolean;
@@ -21,6 +22,7 @@ interface FeaturedExamProps {
 export default function FeaturedTestCard({
   exam,
   hasAccess,
+  onViewDetails,
   onStartExam,
   onPurchaseExam = () => {},
   isProcessing = false,
@@ -97,25 +99,37 @@ export default function FeaturedTestCard({
           )}
         </div>
 
-        {exam.isPremium && !hasAccess ? (
+        <div className="w-full flex flex-col items-center jus gap-3">
+          {/* View details button */}
           <Button
-            onClick={() => onPurchaseExam(exam.id)}
+            onClick={() => onViewDetails && onViewDetails(exam.id)}
             disabled={isProcessing}
-            className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+            className="w-full py-2 px-4 bg-white border border-slate-200 hover:bg-gray-50 text-gray-700 rounded-full text-sm font-medium transition-colors"
           >
-            <CreditCard className="ml-1 h-4 w-4 mr-1" />
-            Purchase
+            View Details
           </Button>
-        ) : (
-          <Button
-            onClick={() => onStartExam(exam.id)}
-            disabled={isProcessing}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
-          >
-            Start Exam
-            <ArrowUpRight className="ml-1 h-4 w-4" />
-          </Button>
-        )}
+
+          {/* Exam access button */}
+          {exam.isPremium && !hasAccess ? (
+            <Button
+              onClick={() => onPurchaseExam(exam.id)}
+              disabled={isProcessing}
+              className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+            >
+              <CreditCard className="ml-1 h-4 w-4 mr-1" />
+              Purchase
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onStartExam(exam.id)}
+              disabled={isProcessing}
+              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+            >
+              Start Exam
+              <ArrowUpRight className="ml-1 h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
