@@ -4,6 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import examService from "@/services/exam.services";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import QuestionDisplay from "@/components/exam/question-display";
+import QuestionNavigation from "@/components/exam/question-navigation";
+import ExamTimer from "@/components/exam/exam-timer";
+import ExamHeader from "@/components/exam/exam-header";
 import {
   ExamDetails,
   ExamProvider,
@@ -23,15 +28,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import QuestionDisplay from "@/components/exam/question-display";
-import QuestionNavigation from "@/components/exam/question-navigation";
-import ExamTimer from "@/components/exam/exam-timer";
-import ExamHeader from "@/components/exam/exam-header";
 
 // Define the main exam component that wraps everything with the provider
 export default function ExamAttemptPage() {
-  // Use useParams hook instead of directly accessing params
   const params = useParams();
   const attemptId = params.attemptId as string;
 
@@ -162,61 +161,8 @@ function ExamContent({ attemptId }: { attemptId: string }) {
     return () => clearInterval(intervalId);
   }, [state.attemptId, state.timeRemaining, state.status]);
 
-  // Handle timer completion
-  const handleTimerComplete = useCallback(async () => {
-    if (!state.attemptId) return;
-
-    try {
-      // Update time to 0
-      await examService.updateTimeRemaining(state.attemptId, 0);
-
-      // Set status to timed-out
-      dispatch({ type: "SET_STATUS", payload: "timed-out" });
-
-      // Show alert and submit
-      toast.warning("Time's up! Your exam will be submitted automatically.");
-
-      // Auto-submit after a short delay
-      setTimeout(() => handleSubmitExam(), 2000);
-    } catch (err) {
-      console.error("Error handling timer completion:", err);
-    }
-  }, [state.attemptId, dispatch]);
-
-  // Handle saving an answer
-  const saveAnswer = useCallback(
-    async (questionId: string, selectedOption: string | null) => {
-      if (!state.attemptId || state.status !== "in-progress") return;
-
-      // Get the question from state
-      const question = state.questions.find((q) => q.id === questionId);
-      if (!question) return;
-
-      // Update local state first for immediate feedback
-      dispatch({
-        type: "SAVE_ANSWER",
-        payload: { questionId, selectedOption },
-      });
-
-      try {
-        // Calculate response time (for analytics)
-        const responseTime = question.responseTime || 0;
-
-        // Save to backend
-        await examService.saveAnswer(state.attemptId, questionId, {
-          selectedOption: selectedOption || null,
-          responseTime,
-        });
-      } catch (err) {
-        console.error("Error saving answer:", err);
-        toast.error("Failed to save your answer. Please try again.");
-      }
-    },
-    [state.attemptId, state.questions, state.status, dispatch]
-  );
-
   // Handle submitting the exam
-  const handleSubmitExam = async () => {
+  const handleSubmitExam = useCallback(async () => {
     if (!state.attemptId) return;
 
     try {
@@ -240,7 +186,60 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       toast.error("Failed to submit exam. Please try again.");
       setSubmitting(false);
     }
-  };
+  }, [state.attemptId, state.status, state.timeRemaining, router]);
+
+  // Handle timer completion
+  const handleTimerComplete = useCallback(async () => {
+    if (!state.attemptId) return;
+
+    try {
+      // Update time to 0
+      await examService.updateTimeRemaining(state.attemptId, 0);
+
+      // Set status to timed-out
+      dispatch({ type: "SET_STATUS", payload: "timed-out" });
+
+      // Show alert and submit
+      toast.warning("Time's up! Your exam will be submitted automatically.");
+
+      // Auto-submit after a short delay
+      setTimeout(() => handleSubmitExam(), 2000);
+    } catch (err) {
+      console.error("Error handling timer completion:", err);
+    }
+  }, [state.attemptId, dispatch, handleSubmitExam]);
+
+  // Handle saving an answer
+  const saveAnswer = useCallback(
+    async (questionId: string, selectedOption: string | null) => {
+      if (!state.attemptId || state.status !== "in-progress") return;
+
+      // Get the question from state
+      const question = state.questions.find((q) => q.id === questionId);
+      if (!question) return;
+
+      // Update local state first for immediate feedback
+      dispatch({
+        type: "SAVE_ANSWER",
+        payload: { questionId, selectedOption },
+      });
+
+      try {
+        // Calculate response time (for analytics)
+        const responseTime = question.responseTime || 0;
+
+        // Save to backend
+        await examService.saveAnswer(state.attemptId, questionId, {
+          selectedOption: selectedOption as string,
+          responseTime,
+        });
+      } catch (err) {
+        console.error("Error saving answer:", err);
+        toast.error("Failed to save your answer. Please try again.");
+      }
+    },
+    [state.attemptId, state.questions, state.status, dispatch]
+  );
 
   // Navigate to next question
   const goToNextQuestion = useCallback(() => {
