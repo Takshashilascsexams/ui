@@ -17,7 +17,7 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import examService from "@/services/exam.services";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-// import LoadingSpinner from "@/components/ui/loading-spinner";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 interface ExamRules {
   id: string;
@@ -91,7 +91,7 @@ export default function ExamRulesPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        {/* <LoadingSpinner size="lg" /> */}
+        <LoadingSpinner size="lg" />
         loading...
       </div>
     );
@@ -237,7 +237,7 @@ export default function ExamRulesPage() {
           >
             {starting ? (
               <>
-                {/* <LoadingSpinner className="mr-2" /> */}
+                <LoadingSpinner className="mr-2" />
                 Starting...
               </>
             ) : (
