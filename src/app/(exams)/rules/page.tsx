@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,8 @@ interface ExamRules {
   rules: string[];
 }
 
-export default function ExamRulesPage() {
+// Create a client component that uses useSearchParams
+function ExamRulesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const examId = searchParams.get("examId");
@@ -249,5 +250,21 @@ export default function ExamRulesPage() {
 
       <Toaster position="top-center" richColors />
     </div>
+  );
+}
+
+// This is the main component that wraps the content with Suspense
+export default function ExamRulesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <LoadingSpinner size="lg" />
+          <p>Loading exam details...</p>
+        </div>
+      }
+    >
+      <ExamRulesContent />
+    </Suspense>
   );
 }
