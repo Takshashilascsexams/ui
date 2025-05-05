@@ -70,7 +70,11 @@ export default function QuestionNavigation({
         </div>
       )}
 
-      <div className="flex justify-between mt-4">
+      <div className="flex items-center justify-center text-sm font-medium">
+        Question {currentIndex + 1} of {totalQuestions}
+      </div>
+
+      <div className="flex items-center justify-between mt-2">
         <Button
           variant="outline"
           onClick={onPrevious}
@@ -80,10 +84,6 @@ export default function QuestionNavigation({
           <ChevronLeft className="mr-1 h-4 w-4" />
           Previous
         </Button>
-
-        <div className="text-sm font-medium">
-          Question {currentIndex + 1} of {totalQuestions}
-        </div>
 
         <Button
           variant="outline"

@@ -13,8 +13,8 @@ export default function ExamTimer({
   timeRemaining,
   onTimeUpdate,
   onTimeExpired,
-  isSyncing = false,
-}: ExamTimerProps) {
+}: // isSyncing = false,
+ExamTimerProps) {
   // Use a ref to track the previous time value
   const prevTimeRef = useRef(timeRemaining);
 
@@ -69,11 +69,11 @@ export default function ExamTimer({
       <div className="text-2xl font-bold text-center py-2">
         {formatTime(timeRemaining)}
       </div>
-      {isSyncing && (
+      {/* {isSyncing && (
         <p className="text-xs text-gray-500 text-center mt-1">
           Syncing time...
         </p>
-      )}
+      )} */}
     </Card>
   );
 }
