@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import examService from "@/services/exam.services";
@@ -29,6 +29,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Define interfaces for pending answers
+interface PendingAnswer {
+  selectedOption: string | null;
+  responseTime: number;
+}
+
+// Define proper types for the question options
+interface QuestionOption {
+  _id: string;
+  optionText: string;
+  isCorrect?: boolean;
+}
+
+// Define proper types for statements if needed
+interface QuestionStatement {
+  statementNumber: number;
+  statementText: string;
+  isCorrect?: boolean;
+}
+
 // Define the main exam component that wraps everything with the provider
 export default function ExamAttemptPage() {
   const params = useParams();
@@ -51,12 +71,170 @@ function ExamContent({ attemptId }: { attemptId: string }) {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isTimerSyncing, setIsTimerSyncing] = useState(false);
 
+  // Refs for optimization
+  const pendingAnswersRef = useRef<Map<string, PendingAnswer>>(new Map());
+  const syncTimerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isOnlineRef = useRef(navigator.onLine);
+  const isSubmittingRef = useRef(false);
+  const lastSyncTimeRef = useRef<number>(Date.now());
+
+  // Sync pending answers with server
+  const syncPendingAnswers = useCallback(
+    async (isForced = false) => {
+      if (
+        pendingAnswersRef.current.size === 0 ||
+        !isOnlineRef.current ||
+        !state.attemptId
+      )
+        return;
+
+      // Don't sync if we're not in-progress, unless forced
+      if (state.status !== "in-progress" && !isForced) return;
+
+      // Clone and clear the pending answers
+      const pendingAnswers = new Map(pendingAnswersRef.current);
+      if (!isForced) {
+        pendingAnswersRef.current.clear();
+      }
+
+      // Process each pending answer
+      for (const [questionId, answerData] of pendingAnswers.entries()) {
+        try {
+          await examService.saveAnswer(state.attemptId, questionId, {
+            selectedOption: answerData.selectedOption as string,
+            responseTime: answerData.responseTime,
+          });
+        } catch (err) {
+          console.error(`Error saving answer for question ${questionId}:`, err);
+
+          // If we're online but the request failed, retry adding it back to pending
+          if (isOnlineRef.current && !isForced) {
+            pendingAnswersRef.current.set(questionId, answerData);
+          }
+
+          if (!isForced) {
+            toast.error(
+              "Failed to save your answer. We'll retry automatically."
+            );
+          }
+        }
+      }
+    },
+    [state.attemptId, state.status]
+  );
+
+  // Sync timer with backend with adaptive frequency
+  const syncTimeRemaining = useCallback(async () => {
+    if (
+      !state.attemptId ||
+      state.status !== "in-progress" ||
+      !isOnlineRef.current
+    )
+      return;
+
+    try {
+      setIsTimerSyncing(true);
+
+      await examService.updateTimeRemaining(
+        state.attemptId,
+        state.timeRemaining
+      );
+
+      // Update last sync time
+      lastSyncTimeRef.current = Date.now();
+
+      // If there are pending answers, sync them too
+      if (pendingAnswersRef.current.size > 0) {
+        await syncPendingAnswers();
+      }
+    } catch (err) {
+      console.error("Error syncing time:", err);
+      // Don't show error toast as this is a background operation
+    } finally {
+      setIsTimerSyncing(false);
+    }
+
+    // Schedule next sync with adaptive timing
+    // - Sync more frequently as time remaining decreases
+    // - Sync more frequently if many pending answers
+    const timeRemaining = state.timeRemaining;
+    let nextSyncDelay = 60000; // Default: 1 minute
+
+    if (timeRemaining < 300) {
+      // Less than 5 minutes remaining - sync every 30 seconds
+      nextSyncDelay = 30000;
+    } else if (timeRemaining < 600) {
+      // Less than 10 minutes remaining - sync every 45 seconds
+      nextSyncDelay = 45000;
+    } else if (pendingAnswersRef.current.size > 10) {
+      // More than 10 pending answers - sync more frequently
+      nextSyncDelay = 30000;
+    }
+
+    // Clear any existing timeout
+    if (syncTimerTimeoutRef.current) {
+      clearTimeout(syncTimerTimeoutRef.current);
+    }
+
+    // Schedule next sync
+    syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, nextSyncDelay);
+  }, [state.attemptId, state.status, state.timeRemaining, syncPendingAnswers]);
+
+  // Track online status for better error handling
+  useEffect(() => {
+    const handleOnline = () => {
+      isOnlineRef.current = true;
+      toast.success("You're back online");
+
+      // Sync any pending answers when back online
+      syncPendingAnswers();
+
+      // Sync timer when back online
+      if (state.attemptId && state.status === "in-progress") {
+        syncTimeRemaining();
+      }
+    };
+
+    const handleOffline = () => {
+      isOnlineRef.current = false;
+      toast.error(
+        "You're offline. Don't worry, your answers will be saved when you reconnect."
+      );
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [state.attemptId, state.status, syncPendingAnswers, syncTimeRemaining]);
+
   // Load exam data on component mount
   useEffect(() => {
     const loadExamData = async () => {
       try {
         setLoading(true);
-        const response = await examService.getExamQuestions(attemptId);
+
+        // Add retry logic for critical API call
+        let attempts = 0;
+        let response;
+
+        while (attempts < 3 && !response) {
+          try {
+            response = await examService.getExamQuestions(attemptId);
+            break;
+          } catch (err) {
+            attempts++;
+            if (attempts >= 3) throw err;
+
+            // Exponential backoff
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * Math.pow(2, attempts - 1))
+            );
+          }
+        }
 
         const { attempt, exam, questions } = response.data;
 
@@ -65,8 +243,8 @@ function ExamContent({ attemptId }: { attemptId: string }) {
           id: string;
           questionText: string;
           type: string;
-          options: string[];
-          statements?: string[];
+          options: QuestionOption[];
+          statements?: QuestionStatement[];
           statementInstruction?: string;
           marks: number;
           selectedOption: string | null;
@@ -112,6 +290,9 @@ function ExamContent({ attemptId }: { attemptId: string }) {
         dispatch({ type: "SET_EXAM_DETAILS", payload: examDetails });
         dispatch({ type: "SET_QUESTIONS", payload: formattedQuestions });
         dispatch({ type: "SET_STATUS", payload: attempt.status });
+
+        // Record the initial sync time
+        lastSyncTimeRef.current = Date.now();
       } catch (err) {
         console.error("Error loading exam:", err);
         toast.error("Failed to load exam. Redirecting back...");
@@ -125,6 +306,11 @@ function ExamContent({ attemptId }: { attemptId: string }) {
 
     // Setup warning before user leaves the page
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Sync pending answers before user leaves
+      if (pendingAnswersRef.current.size > 0) {
+        syncPendingAnswers(true);
+      }
+
       e.preventDefault();
       e.returnValue = "";
       return "";
@@ -134,50 +320,61 @@ function ExamContent({ attemptId }: { attemptId: string }) {
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [attemptId, dispatch, router]);
 
-  // Sync timer with backend periodically
-  useEffect(() => {
-    if (!state.attemptId || state.status !== "in-progress") return;
-
-    const syncTimeRemaining = async () => {
-      try {
-        setIsTimerSyncing(true);
-        await examService.updateTimeRemaining(
-          state.attemptId!,
-          state.timeRemaining
-        );
-      } catch (err) {
-        console.error("Error syncing time:", err);
-      } finally {
-        setIsTimerSyncing(false);
+      // Clear any pending timeouts
+      if (syncTimerTimeoutRef.current) {
+        clearTimeout(syncTimerTimeoutRef.current);
       }
     };
-
-    // Sync every minute
-    const intervalId = setInterval(syncTimeRemaining, 60000);
-
-    return () => clearInterval(intervalId);
-  }, [state.attemptId, state.timeRemaining, state.status]);
+  }, [attemptId, dispatch, router, syncPendingAnswers]);
 
   // Handle submitting the exam
   const handleSubmitExam = useCallback(async () => {
-    if (!state.attemptId) return;
+    if (!state.attemptId || isSubmittingRef.current) return;
 
     try {
       setSubmitting(true);
+      isSubmittingRef.current = true;
+
+      // Sync any pending answers first
+      await syncPendingAnswers(true);
 
       // Final sync of time remaining
       if (state.status === "in-progress") {
-        await examService.updateTimeRemaining(
-          state.attemptId,
-          state.timeRemaining
-        );
+        try {
+          await examService.updateTimeRemaining(
+            state.attemptId,
+            state.timeRemaining
+          );
+        } catch (err) {
+          console.error(
+            "Error updating time remaining before submission:",
+            err
+          );
+          // Continue with submission even if time update fails
+        }
       }
 
-      // Submit the exam
-      await examService.submitExam(state.attemptId);
+      // Submit the exam with retry logic
+      let attempts = 0;
+      let success = false;
+
+      while (attempts < 3 && !success) {
+        try {
+          await examService.submitExam(state.attemptId);
+          success = true;
+        } catch (err) {
+          attempts++;
+          console.error(`Submission attempt ${attempts} failed:`, err);
+
+          if (attempts >= 3) throw err;
+
+          // Wait with exponential backoff
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, attempts - 1))
+          );
+        }
+      }
 
       // Redirect to results page
       router.push("/thankyou");
@@ -185,8 +382,15 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       console.error("Error submitting exam:", err);
       toast.error("Failed to submit exam. Please try again.");
       setSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  }, [state.attemptId, state.status, state.timeRemaining, router]);
+  }, [
+    state.attemptId,
+    state.status,
+    state.timeRemaining,
+    router,
+    syncPendingAnswers,
+  ]);
 
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
@@ -206,6 +410,9 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       setTimeout(() => handleSubmitExam(), 2000);
     } catch (err) {
       console.error("Error handling timer completion:", err);
+
+      // Still try to submit even if time update fails
+      setTimeout(() => handleSubmitExam(), 2000);
     }
   }, [state.attemptId, dispatch, handleSubmitExam]);
 
@@ -218,27 +425,46 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       const question = state.questions.find((q) => q.id === questionId);
       if (!question) return;
 
+      // Calculate updated response time (for analytics)
+      const responseTime = question.responseTime || 0;
+
       // Update local state first for immediate feedback
       dispatch({
         type: "SAVE_ANSWER",
         payload: { questionId, selectedOption },
       });
 
-      try {
-        // Calculate response time (for analytics)
-        const responseTime = question.responseTime || 0;
+      // Add to pending answers queue instead of saving immediately
+      pendingAnswersRef.current.set(questionId, {
+        selectedOption,
+        responseTime,
+      });
 
-        // Save to backend
-        await examService.saveAnswer(state.attemptId, questionId, {
-          selectedOption: selectedOption as string,
-          responseTime,
-        });
-      } catch (err) {
-        console.error("Error saving answer:", err);
-        toast.error("Failed to save your answer. Please try again.");
+      // Check if it's time to sync
+      const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
+      const pendingCount = pendingAnswersRef.current.size;
+
+      // Sync if:
+      // 1. More than 10 pending answers, or
+      // 2. It's been more than 30 seconds since last sync, or
+      // 3. The user is answering the last question
+      if (
+        pendingCount >= 10 ||
+        timeSinceLastSync > 30000 ||
+        (state.currentQuestionIndex === state.questions.length - 1 &&
+          selectedOption !== null)
+      ) {
+        syncPendingAnswers();
       }
     },
-    [state.attemptId, state.questions, state.status, dispatch]
+    [
+      state.attemptId,
+      state.questions,
+      state.status,
+      state.currentQuestionIndex,
+      dispatch,
+      syncPendingAnswers,
+    ]
   );
 
   // Navigate to next question
@@ -279,7 +505,7 @@ function ExamContent({ attemptId }: { attemptId: string }) {
     [state.questions.length, state.examDetails?.allowNavigation, dispatch]
   );
 
-  // Function to handle timer updates - moved outside of render
+  // Function to handle timer updates
   const handleTimeUpdate = useCallback(
     (time: number) => {
       dispatch({ type: "UPDATE_TIME", payload: time });
@@ -287,10 +513,69 @@ function ExamContent({ attemptId }: { attemptId: string }) {
     [dispatch]
   );
 
+  // Effect to handle visibility change events
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // User is navigating away - sync timer
+        if (state.attemptId && state.status === "in-progress") {
+          // Use navigator.sendBeacon-like behavior
+          // In a real app, consider implementing with navigator.sendBeacon
+          const controller = new AbortController();
+          setTimeout(() => controller.abort(), 2000);
+
+          fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/exam-attempt/time/${state.attemptId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${
+                  localStorage.getItem("authToken") || ""
+                }`,
+              },
+              body: JSON.stringify({ timeRemaining: state.timeRemaining }),
+              signal: controller.signal,
+            }
+          ).catch((err) => {
+            // Silent catch - the user is leaving anyway
+            console.error("Error syncing time before unload:", err);
+          });
+        }
+      } else if (document.visibilityState === "visible") {
+        // User has returned - check if we need to sync
+        const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
+        if (timeSinceLastSync > 60000) {
+          // If more than a minute has passed
+          syncTimeRemaining();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [state.attemptId, state.timeRemaining, state.status, syncTimeRemaining]);
+
+  // Start timer sync on initial load
+  useEffect(() => {
+    if (state.attemptId && state.status === "in-progress") {
+      syncTimeRemaining();
+    }
+
+    return () => {
+      if (syncTimerTimeoutRef.current) {
+        clearTimeout(syncTimerTimeoutRef.current);
+      }
+    };
+  }, [state.attemptId, state.status, syncTimeRemaining]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
+        <div className="flex flex-col items-center justify-center">
           <LoadingSpinner size="lg" className="mb-4" />
           <p className="text-gray-600">Loading exam...</p>
         </div>
@@ -434,7 +719,14 @@ function ExamContent({ attemptId }: { attemptId: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push("/tests")}>
+            <AlertDialogAction
+              onClick={() => {
+                // Sync answers and timer before exiting
+                syncPendingAnswers(true);
+                syncTimeRemaining();
+                router.push("/tests");
+              }}
+            >
               Exit Exam
             </AlertDialogAction>
           </AlertDialogFooter>

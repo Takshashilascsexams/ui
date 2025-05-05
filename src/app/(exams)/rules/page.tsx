@@ -93,7 +93,6 @@ function ExamRulesContent() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
-        loading...
       </div>
     );
   }
@@ -238,8 +237,8 @@ function ExamRulesContent() {
           >
             {starting ? (
               <>
-                <LoadingSpinner className="mr-2" />
-                Starting...
+                <LoadingSpinner size="sm" className="mr-2" />
+                Starting
               </>
             ) : (
               "Start Exam"
