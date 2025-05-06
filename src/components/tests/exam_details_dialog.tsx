@@ -43,6 +43,7 @@ export default function ExamDetailsDialog({
   isProcessing = false,
 }: ExamDetailsDialogProps) {
   if (!exam) return null;
+  console.log(exam.id);
 
   // Format duration in hours and minutes
   const formatDuration = (minutes: number) => {
