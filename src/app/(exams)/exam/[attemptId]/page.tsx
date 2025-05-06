@@ -9,15 +9,15 @@ import QuestionDisplay from "@/components/exam/question-display";
 import QuestionNavigation from "@/components/exam/question-navigation";
 import ExamTimer from "@/components/exam/exam-timer";
 import ExamHeader from "@/components/exam/exam-header";
+import { Toaster } from "sonner";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   ExamDetails,
   ExamProvider,
   Question,
   useExam,
 } from "@/context/exam.context";
-import { Toaster } from "sonner";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +50,7 @@ interface QuestionStatement {
 }
 
 // Define the main exam component that wraps everything with the provider
-export default function ExamAttemptPage() {
+export default function Page() {
   const params = useParams();
   const attemptId = params.attemptId as string;
 
@@ -123,7 +123,7 @@ function ExamContent({ attemptId }: { attemptId: string }) {
     [state.attemptId, state.status]
   );
 
-  // Sync timer with backend with adaptive frequency
+  // Sync timer with backend with reduced frequency (10 min default)
   const syncTimeRemaining = useCallback(async () => {
     if (
       !state.attemptId ||
@@ -131,6 +131,40 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       !isOnlineRef.current
     )
       return;
+
+    // Check if enough time has passed since last sync (enforcing minimum interval)
+    const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
+    const minimumSyncInterval = 60000; // 1 minute absolute minimum
+
+    // Return early if we synced too recently, unless it's critical
+    if (timeSinceLastSync < minimumSyncInterval && state.timeRemaining > 300) {
+      // Schedule next check and exit
+      if (syncTimerTimeoutRef.current) {
+        clearTimeout(syncTimerTimeoutRef.current);
+      }
+
+      const timeRemaining = state.timeRemaining;
+      let nextSyncDelay = 10 * 60000; // Default: 10 minutes
+
+      // Adaptive timing based on exam conditions
+      if (timeRemaining < 300) {
+        // Less than 5 minutes remaining - sync every 2 minutes
+        nextSyncDelay = 2 * 60000;
+      } else if (timeRemaining < 600) {
+        // Less than 10 minutes remaining - sync every 5 minutes
+        nextSyncDelay = 5 * 60000;
+      } else if (pendingAnswersRef.current.size > 20) {
+        // Large number of pending answers - sync every 5 minutes
+        nextSyncDelay = 5 * 60000;
+      }
+
+      // Schedule next sync
+      syncTimerTimeoutRef.current = setTimeout(
+        syncTimeRemaining,
+        nextSyncDelay
+      );
+      return;
+    }
 
     try {
       setIsTimerSyncing(true);
@@ -149,31 +183,47 @@ function ExamContent({ attemptId }: { attemptId: string }) {
       }
     } catch (err) {
       console.error("Error syncing time:", err);
+
+      // Check if the error is due to rate limiting
+      const isRateLimitError =
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string" &&
+        (err as { message: string }).message.includes(
+          "Too many time update requests"
+        );
+
+      if (isRateLimitError) {
+        console.warn("Rate limited by server. Extending sync interval.");
+        // If rate limited, extend the next sync interval significantly
+        syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, 15 * 60000); // 15 minutes
+        setIsTimerSyncing(false);
+        return; // Exit early with extended timeout
+      }
       // Don't show error toast as this is a background operation
     } finally {
       setIsTimerSyncing(false);
     }
 
-    // Schedule next sync with adaptive timing
-    // - Sync more frequently as time remaining decreases
-    // - Sync more frequently if many pending answers
-    const timeRemaining = state.timeRemaining;
-    let nextSyncDelay = 60000; // Default: 1 minute
-
-    if (timeRemaining < 300) {
-      // Less than 5 minutes remaining - sync every 30 seconds
-      nextSyncDelay = 30000;
-    } else if (timeRemaining < 600) {
-      // Less than 10 minutes remaining - sync every 45 seconds
-      nextSyncDelay = 45000;
-    } else if (pendingAnswersRef.current.size > 10) {
-      // More than 10 pending answers - sync more frequently
-      nextSyncDelay = 30000;
-    }
-
-    // Clear any existing timeout
+    // Schedule next sync
     if (syncTimerTimeoutRef.current) {
       clearTimeout(syncTimerTimeoutRef.current);
+    }
+
+    const timeRemaining = state.timeRemaining;
+    let nextSyncDelay = 10 * 60000; // Default: 10 minutes
+
+    // Adaptive timing based on exam conditions
+    if (timeRemaining < 300) {
+      // Less than 5 minutes remaining - sync every 2 minutes
+      nextSyncDelay = 2 * 60000;
+    } else if (timeRemaining < 600) {
+      // Less than 10 minutes remaining - sync every 5 minutes
+      nextSyncDelay = 5 * 60000;
+    } else if (pendingAnswersRef.current.size > 20) {
+      // Large number of pending answers - sync every 5 minutes
+      nextSyncDelay = 5 * 60000;
     }
 
     // Schedule next sync
@@ -517,36 +567,39 @@ function ExamContent({ attemptId }: { attemptId: string }) {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        // User is navigating away - sync timer
+        // User is navigating away - try to sync timer if enough time has passed
         if (state.attemptId && state.status === "in-progress") {
-          // Use navigator.sendBeacon-like behavior
-          // In a real app, consider implementing with navigator.sendBeacon
-          const controller = new AbortController();
-          setTimeout(() => controller.abort(), 2000);
+          const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
+          // Only sync if it's been at least 1 minute since last sync
+          if (timeSinceLastSync > 60000) {
+            // Use fetch with AbortController for background sync
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 2000);
 
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/exam-attempt/time/${state.attemptId}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${
-                  localStorage.getItem("authToken") || ""
-                }`,
-              },
-              body: JSON.stringify({ timeRemaining: state.timeRemaining }),
-              signal: controller.signal,
-            }
-          ).catch((err) => {
-            // Silent catch - the user is leaving anyway
-            console.error("Error syncing time before unload:", err);
-          });
+            fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/exam-attempt/time/${state.attemptId}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${
+                    localStorage.getItem("authToken") || ""
+                  }`,
+                },
+                body: JSON.stringify({ timeRemaining: state.timeRemaining }),
+                signal: controller.signal,
+              }
+            ).catch((err) => {
+              // Silent catch - the user is leaving anyway
+              console.error("Error syncing time before unload:", err);
+            });
+          }
         }
       } else if (document.visibilityState === "visible") {
         // User has returned - check if we need to sync
         const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
-        if (timeSinceLastSync > 60000) {
-          // If more than a minute has passed
+        if (timeSinceLastSync > 5 * 60000) {
+          // Only if more than 5 minutes have passed
           syncTimeRemaining();
         }
       }
@@ -583,9 +636,9 @@ function ExamContent({ attemptId }: { attemptId: string }) {
     );
   }
 
-  if (!state.examDetails || state.questions.length === 0) {
+  if (!attemptId || !state.examDetails || state.questions.length === 0) {
     return (
-      <div className="container mx-auto py-12 px-4 text-center">
+      <div className="container mx-auto py-24 px-4 text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-4">
           Error Loading Exam
         </h1>

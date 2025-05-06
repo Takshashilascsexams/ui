@@ -46,6 +46,7 @@ function ExamRulesContent() {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
+  // effect to fetch exam rules on load
   useEffect(() => {
     const fetchRules = async () => {
       if (!examId) {
@@ -61,7 +62,10 @@ function ExamRulesContent() {
       } catch (err) {
         console.error("Error fetching exam rules:", err);
         setError(
-          err instanceof Error ? err.message : "Failed to fetch exam rules"
+          // err instanceof Error ? err.message : "Failed to fetch exam rules"
+          err instanceof Error
+            ? "Invalid exam id. Please provide a valid exam id and try again."
+            : "Failed to fetch exam rules"
         );
       } finally {
         setLoading(false);
@@ -71,6 +75,7 @@ function ExamRulesContent() {
     fetchRules();
   }, [examId]);
 
+  // start exam
   const handleStartExam = async () => {
     if (!examId) return;
 
@@ -99,7 +104,7 @@ function ExamRulesContent() {
 
   if (error || !rules) {
     return (
-      <div className="container max-w-4xl mx-auto py-12 px-4">
+      <div className="container max-w-4xl mx-auto py-24 px-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
@@ -133,15 +138,9 @@ function ExamRulesContent() {
               </AlertDescription>
             </Alert>
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex justify-end">
             <Button variant="outline" onClick={() => router.push("/tests")}>
               Back to Tests
-            </Button>
-            <Button
-              className="bg-amber-600 hover:bg-amber-700"
-              onClick={() => router.push(`/tests?examId=${examId}`)}
-            >
-              Purchase Exam
             </Button>
           </CardFooter>
         </Card>
