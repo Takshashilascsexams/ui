@@ -1,4 +1,3 @@
-// components/exam/exam-timer.tsx
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 
