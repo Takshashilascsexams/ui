@@ -47,6 +47,7 @@ export default function QuestionsPreviewDialog({
                 questionText,
                 options,
                 statements,
+                correctAnswer,
                 statementInstruction,
               } = question;
 
@@ -89,8 +90,8 @@ export default function QuestionsPreviewDialog({
                     </ul>
                   </div>
 
-                  {/* {answer && <p>Answer: {answer}</p>}
-                  {explanation && <p>Explanation (optional): {explanation}</p>} */}
+                  {correctAnswer && <p>Answer: {correctAnswer}</p>}
+                  {/* {explanation && <p>Explanation (optional): {explanation}</p>} */}
                 </div>
               );
             })}

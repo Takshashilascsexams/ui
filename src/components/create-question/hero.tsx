@@ -26,6 +26,7 @@ interface Question {
   questionText: string;
   statements: Statement[];
   options: Option[];
+  correctAnswer: string;
   statementInstruction: string;
   type: string;
 }

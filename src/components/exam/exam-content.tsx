@@ -106,113 +106,6 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   );
 
   // Sync timer with backend with reduced frequency (10 min default)
-  // const syncTimeRemaining = useCallback(async () => {
-  //   if (
-  //     !state.attemptId ||
-  //     state.status !== "in-progress" ||
-  //     !isOnlineRef.current
-  //   )
-  //     return;
-
-  //   // Check if enough time has passed since last sync (enforcing minimum interval)
-  //   const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
-  //   const minimumSyncInterval = 60000; // 1 minute absolute minimum
-
-  //   // Return early if we synced too recently, unless it's critical
-  //   if (timeSinceLastSync < minimumSyncInterval && state.timeRemaining > 300) {
-  //     // Schedule next check and exit
-  //     if (syncTimerTimeoutRef.current) {
-  //       clearTimeout(syncTimerTimeoutRef.current);
-  //     }
-
-  //     const timeRemaining = state.timeRemaining;
-  //     let nextSyncDelay = 10 * 60000; // Default: 10 minutes
-
-  //     // Adaptive timing based on exam conditions
-  //     if (timeRemaining < 300) {
-  //       // Less than 5 minutes remaining - sync every 2 minutes
-  //       nextSyncDelay = 2 * 60000;
-  //     } else if (timeRemaining < 600) {
-  //       // Less than 10 minutes remaining - sync every 5 minutes
-  //       nextSyncDelay = 5 * 60000;
-  //     } else if (pendingAnswersRef.current.size > 20) {
-  //       // Large number of pending answers - sync every 5 minutes
-  //       nextSyncDelay = 5 * 60000;
-  //     }
-
-  //     // Schedule next sync
-  //     syncTimerTimeoutRef.current = setTimeout(
-  //       syncTimeRemaining,
-  //       nextSyncDelay
-  //     );
-  //     return;
-  //   }
-
-  //   try {
-  //     setIsTimerSyncing(true);
-
-  //     await examService.updateTimeRemaining(
-  //       state.attemptId,
-  //       state.timeRemaining
-  //     );
-
-  //     // Update last sync time
-  //     lastSyncTimeRef.current = Date.now();
-
-  //     // If there are pending answers, sync them too
-  //     if (pendingAnswersRef.current.size > 0) {
-  //       await syncPendingAnswers();
-  //     }
-  //   } catch (err) {
-  //     console.error("Error syncing time:", err);
-
-  //     // Check if the error is due to rate limiting
-  //     const isRateLimitError =
-  //       typeof err === "object" &&
-  //       err !== null &&
-  //       "message" in err &&
-  //       typeof (err as { message: unknown }).message === "string" &&
-  //       (err as { message: string }).message.includes(
-  //         "Too many time update requests"
-  //       );
-
-  //     if (isRateLimitError) {
-  //       console.warn("Rate limited by server. Extending sync interval.");
-  //       // If rate limited, extend the next sync interval significantly
-  //       syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, 15 * 60000); // 15 minutes
-  //       setIsTimerSyncing(false);
-  //       return; // Exit early with extended timeout
-  //     }
-  //     // Don't show error toast as this is a background operation
-  //   } finally {
-  //     setIsTimerSyncing(false);
-  //   }
-
-  //   // Schedule next sync
-  //   if (syncTimerTimeoutRef.current) {
-  //     clearTimeout(syncTimerTimeoutRef.current);
-  //   }
-
-  //   const timeRemaining = state.timeRemaining;
-  //   let nextSyncDelay = 10 * 60000; // Default: 10 minutes
-
-  //   // Adaptive timing based on exam conditions
-  //   if (timeRemaining < 300) {
-  //     // Less than 5 minutes remaining - sync every 2 minutes
-  //     nextSyncDelay = 2 * 60000;
-  //   } else if (timeRemaining < 600) {
-  //     // Less than 10 minutes remaining - sync every 5 minutes
-  //     nextSyncDelay = 5 * 60000;
-  //   } else if (pendingAnswersRef.current.size > 20) {
-  //     // Large number of pending answers - sync every 5 minutes
-  //     nextSyncDelay = 5 * 60000;
-  //   }
-
-  //   // Schedule next sync
-  //   syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, nextSyncDelay);
-  // }, [state.attemptId, state.status, state.timeRemaining, syncPendingAnswers]);
-
-  // Sync timer with backend with reduced frequency
   const syncTimeRemaining = useCallback(async () => {
     // Clear any existing timeout
     if (syncTimerTimeoutRef.current) {
@@ -220,42 +113,32 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       syncTimerTimeoutRef.current = null;
     }
 
-    // Check basic conditions before proceeding
+    // Check conditions before proceeding
     if (
       !state.attemptId ||
       state.status !== "in-progress" ||
-      !isOnlineRef.current
+      !isOnlineRef.current ||
+      state.timeRemaining <= 60 // Skip sync if less than 60 seconds remain
     ) {
       return;
     }
 
-    // Calculate adaptive sync interval based on current conditions
+    // Calculate adaptive sync interval
     const calculateSyncInterval = () => {
       const timeRemaining = state.timeRemaining;
-      let nextSyncDelay = 10 * 60000; // Default: 10 minutes
 
-      // Adaptive timing based on exam conditions
       if (timeRemaining < 300) {
-        // Less than 5 minutes remaining - sync every 2 minutes
-        nextSyncDelay = 2 * 60000;
-      } else if (timeRemaining < 600) {
-        // Less than 10 minutes remaining - sync every 5 minutes
-        nextSyncDelay = 5 * 60000;
-      } else if (pendingAnswersRef.current.size > 20) {
-        // Large number of pending answers - sync every 5 minutes
-        nextSyncDelay = 5 * 60000;
+        return 2 * 60000; // Less than 5 minutes - sync every 2 minutes
+      } else if (timeRemaining < 600 || pendingAnswersRef.current.size > 20) {
+        return 5 * 60000; // Less than 10 minutes or many pending answers - sync every 5 minutes
       }
-
-      return nextSyncDelay;
+      return 10 * 60000; // Default: 10 minutes
     };
 
     // Check if enough time has passed since last sync
     const timeSinceLastSync = Date.now() - lastSyncTimeRef.current;
-    const minimumSyncInterval = 60000; // 1 minute absolute minimum
-
-    // Skip sync if it's too soon, except for critical situations
-    if (timeSinceLastSync < minimumSyncInterval && state.timeRemaining > 300) {
-      // Schedule next check and exit
+    if (timeSinceLastSync < 60000) {
+      // 1 minute minimum between syncs
       syncTimerTimeoutRef.current = setTimeout(
         syncTimeRemaining,
         calculateSyncInterval()
@@ -263,53 +146,58 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       return;
     }
 
-    // Perform the actual sync
     try {
       setIsTimerSyncing(true);
 
-      await examService.updateTimeRemaining(
-        state.attemptId,
-        state.timeRemaining
-      );
-
-      // Update last sync time
-      lastSyncTimeRef.current = Date.now();
-
-      // If there are pending answers, sync them too
-      if (pendingAnswersRef.current.size > 0) {
-        await syncPendingAnswers();
-      }
-    } catch (err) {
-      console.error("Error syncing time:", err);
-
-      // Check if the error is due to rate limiting
-      const isRateLimitError =
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof (err as { message: unknown }).message === "string" &&
-        (err as { message: string }).message.includes(
-          "Too many time update requests"
+      // Verify still in progress before updating
+      if (state.status === "in-progress") {
+        await examService.updateTimeRemaining(
+          state.attemptId,
+          state.timeRemaining
         );
 
-      if (isRateLimitError) {
-        console.warn("Rate limited by server. Extending sync interval.");
-        // If rate limited, extend the next sync interval significantly
-        syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, 15 * 60000); // 15 minutes
-        setIsTimerSyncing(false);
-        return; // Exit early with extended timeout
+        lastSyncTimeRef.current = Date.now();
+
+        // Sync pending answers if needed
+        if (pendingAnswersRef.current.size > 0) {
+          await syncPendingAnswers();
+        }
       }
-      // Don't show error toast as this is a background operation
+    } catch (err) {
+      // Handle "already timed-out" error
+      if (err instanceof Error && err.message.includes("already timed-out")) {
+        dispatch({ type: "SET_STATUS", payload: "timed-out" });
+        setIsTimerSyncing(false);
+        return;
+      }
+
+      // Handle rate limiting
+      if (
+        err instanceof Error &&
+        err.message.includes("Too many time update requests")
+      ) {
+        syncTimerTimeoutRef.current = setTimeout(syncTimeRemaining, 5 * 60000);
+        setIsTimerSyncing(false);
+        return;
+      }
     } finally {
       setIsTimerSyncing(false);
     }
 
-    // Schedule next sync with adaptive timing
-    syncTimerTimeoutRef.current = setTimeout(
-      syncTimeRemaining,
-      calculateSyncInterval()
-    );
-  }, [state.attemptId, state.status, state.timeRemaining, syncPendingAnswers]);
+    // Schedule next sync if still in progress
+    if (state.status === "in-progress") {
+      syncTimerTimeoutRef.current = setTimeout(
+        syncTimeRemaining,
+        calculateSyncInterval()
+      );
+    }
+  }, [
+    state.attemptId,
+    state.status,
+    state.timeRemaining,
+    syncPendingAnswers,
+    dispatch,
+  ]);
 
   // Track online status for better error handling
   useEffect(() => {
@@ -470,8 +358,10 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       // Sync any pending answers first
       await syncPendingAnswers(true);
 
-      // Final sync of time remaining ONLY if the exam is still in progress
+      // IMPORTANT CHANGE: Skip the time update entirely if status is timed-out
+      // This prevents the "already timed-out" error
       if (state.status === "in-progress") {
+        console.log("calling update time after timer is 0");
         try {
           await examService.updateTimeRemaining(
             state.attemptId,
@@ -483,18 +373,16 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
             err
           );
           // Check if the error is about exam being timed-out already
-          // If so, update our local state to match the server state
           if (
             err instanceof Error &&
             err.message.includes("already timed-out")
           ) {
+            // Update our local state to match the server state
             dispatch({ type: "SET_STATUS", payload: "timed-out" });
-            // We can continue with submission without needing to update time
-          } else {
-            // For other errors, we'll still continue with submission
-            console.warn("Time update failed but continuing with submission");
           }
         }
+      } else {
+        console.log("Skipping time update - exam is already timed-out");
       }
 
       // Submit the exam with retry logic
@@ -518,8 +406,14 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
         }
       }
 
-      // Redirect to results page
-      router.push(`/thankyou?attemptId=${state.attemptId}`);
+      // After successful submission
+      if (success) {
+        // Update local state to completed
+        dispatch({ type: "SET_STATUS", payload: "completed" });
+
+        // Redirect to results page
+        router.push(`/thankyou?attemptId=${state.attemptId}`);
+      }
     } catch (err) {
       console.error("Error submitting exam:", err);
       toast.error("Failed to submit exam. Please try again.");
@@ -539,24 +433,24 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const handleTimerComplete = useCallback(async () => {
     if (!state.attemptId) return;
 
-    try {
-      // Update time to 0
-      await examService.updateTimeRemaining(state.attemptId, 0);
-
-      // Set status to timed-out
-      dispatch({ type: "SET_STATUS", payload: "timed-out" });
-
-      // Show alert and submit
-      toast.warning("Time's up! Your exam will be submitted automatically.");
-
-      // Auto-submit after a short delay
-      setTimeout(() => handleSubmitExam(), 2000);
-    } catch (err) {
-      console.error("Error handling timer completion:", err);
-
-      // Still try to submit even if time update fails
-      setTimeout(() => handleSubmitExam(), 2000);
+    // Clear any existing timer sync timeout
+    if (syncTimerTimeoutRef.current) {
+      clearTimeout(syncTimerTimeoutRef.current);
+      syncTimerTimeoutRef.current = null;
     }
+
+    // Set local status first to prevent further update attempts
+    dispatch({ type: "SET_STATUS", payload: "timed-out" });
+    dispatch({ type: "UPDATE_TIME", payload: 0 });
+
+    // Show alert to user
+    toast.warning("Time's up! Your exam will be submitted automatically.");
+
+    // Skip updating the server time - if our local time is 0, server is likely
+    // already aware or will be informed during submission
+
+    // Auto-submit after a short delay
+    setTimeout(() => handleSubmitExam(), 2000);
   }, [state.attemptId, dispatch, handleSubmitExam]);
 
   // Handle saving an answer
