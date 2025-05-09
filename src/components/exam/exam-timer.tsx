@@ -68,11 +68,6 @@ ExamTimerProps) {
       <div className="text-2xl font-bold text-center py-2">
         {formatTime(timeRemaining)}
       </div>
-      {/* {isSyncing && (
-        <p className="text-xs text-gray-500 text-center mt-1">
-          Syncing time...
-        </p>
-      )} */}
     </Card>
   );
 }

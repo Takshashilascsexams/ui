@@ -46,10 +46,10 @@ const addNewTestFormSchema = z
     duration: z.string().refine(
       (val) => {
         const durationInMinutes = parseInt(val);
-        return !isNaN(durationInMinutes) && durationInMinutes >= 30;
+        return !isNaN(durationInMinutes) && durationInMinutes >= 15;
       },
       {
-        message: "Exam duration should not be less than 30 mins",
+        message: "Exam duration should not be less than 15 mins",
       }
     ),
     totalQuestions: z.string().refine(
@@ -210,6 +210,8 @@ export default function CreateExamForm() {
         values.discountPrice = "";
         values.accessPeriod = "0";
       }
+
+      console.log(values);
 
       // If not part of a bundle, clear bundle tag
       if (!values.isPartOfBundle) {
