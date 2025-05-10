@@ -63,7 +63,8 @@ type ExamAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }
   | { type: "SET_SUBMITTING"; payload: boolean }
-  | { type: "SET_STATUS"; payload: ExamState["status"] };
+  | { type: "SET_STATUS"; payload: ExamState["status"] }
+  | { type: "CLEANUP" };
 
 const initialState: ExamState = {
   attemptId: null,
@@ -135,6 +136,13 @@ function examReducer(state: ExamState, action: ExamAction): ExamState {
       return {
         ...state,
         status: action.payload,
+      };
+    case "CLEANUP":
+      // Only reset certain parts of the state that could cause problems
+      return {
+        ...state,
+        submitting: false,
+        error: null,
       };
     default:
       return state;

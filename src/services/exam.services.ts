@@ -75,6 +75,30 @@ class ExamService {
   }
 
   /**
+   * Check exam status
+   */
+  async checkExamStatus(attemptId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/status/${attemptId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to check exam status");
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Get questions for an active exam attempt
    */
   async getExamQuestions(attemptId: string) {

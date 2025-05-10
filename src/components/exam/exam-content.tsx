@@ -199,6 +199,32 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     dispatch,
   ]);
 
+  // Check exam-attempt status on load
+  useEffect(() => {
+    const checkExamStatus = async () => {
+      try {
+        const response = await examService.checkExamStatus(attemptId);
+        if (
+          response.status === "completed" ||
+          response.status === "timed-out"
+        ) {
+          // Redirect to results or thank you page
+          router.replace(`/thankyou`);
+        }
+      } catch (error) {
+        // If error indicates the exam is completed, redirect
+        if (
+          error instanceof Error &&
+          error.message.includes("already completed")
+        ) {
+          router.replace(`/thankyou`);
+        }
+      }
+    };
+
+    checkExamStatus();
+  }, [attemptId, router]);
+
   // Track online status for better error handling
   useEffect(() => {
     const handleOnline = () => {
@@ -347,6 +373,32 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     };
   }, [attemptId, dispatch, router, syncPendingAnswers]);
 
+  // Effect to cleanup existing refs on unmount
+  useEffect(() => {
+    // Store the current ref values in local variables
+    // that will be captured in the closure for the cleanup function
+    const pendingAnswersRefValue = pendingAnswersRef.current;
+    const syncTimerTimeoutRefValue = syncTimerTimeoutRef.current;
+
+    return () => {
+      // Use the captured values instead of accessing .current directly
+      if (syncTimerTimeoutRefValue) {
+        clearTimeout(syncTimerTimeoutRefValue);
+      }
+
+      // Clear any pending operations safely using the captured value
+      if (
+        pendingAnswersRefValue &&
+        typeof pendingAnswersRefValue.clear === "function"
+      ) {
+        pendingAnswersRefValue.clear();
+      }
+
+      // Reset exam state if needed
+      dispatch({ type: "CLEANUP" });
+    };
+  }, [dispatch]);
+
   // Handle submitting the exam
   const handleSubmitExam = useCallback(async () => {
     if (!state.attemptId || isSubmittingRef.current) return;
@@ -411,8 +463,17 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
         // Update local state to completed
         dispatch({ type: "SET_STATUS", payload: "completed" });
 
-        // Redirect to results page
-        router.push(`/thankyou?attemptId=${state.attemptId}`);
+        // Use replace instead of push to prevent back navigation to exam
+        router.replace(`/thankyou`);
+
+        // Clear any remaining state/refs that might cause re-renders
+        if (pendingAnswersRef.current) {
+          pendingAnswersRef.current.clear();
+        }
+        if (syncTimerTimeoutRef.current) {
+          clearTimeout(syncTimerTimeoutRef.current);
+          syncTimerTimeoutRef.current = null;
+        }
       }
     } catch (err) {
       console.error("Error submitting exam:", err);
