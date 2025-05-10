@@ -22,7 +22,7 @@ export default function TestSeriesSection({
             Latest Test Series
           </h2>
           <Link
-            href="/all-test-series"
+            href="/tests"
             className="px-3 py-2 text-sm text-[#2E4057] font-semibold opacity-80 hover:opacity-100 rounded-full hover:bg-slate-100"
           >
             View All

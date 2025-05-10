@@ -7,12 +7,12 @@ const axiosInstance = axios.create({
   httpAgent: new HttpAgent({
     keepAlive: true,
     timeout: 60000, // 60s timeout
-    maxSockets: 10, // Limit concurrent connections
+    maxSockets: 50, // Limit concurrent connections
   }),
   httpsAgent: new HttpsAgent({
     keepAlive: true,
     timeout: 60000, // 60s timeout
-    maxSockets: 10, // Limit concurrent connections
+    maxSockets: 50, // Limit concurrent connections
   }),
 });
 
