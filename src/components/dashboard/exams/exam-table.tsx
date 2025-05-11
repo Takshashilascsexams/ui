@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CustomSwitch } from "@/components/ui/custom-switch";
 import { ExamData, PaginationData } from "./exam-dashboard";
+import { getExamEditUrl, getExamDetailsUrl } from "@/utils/exam-utils";
 
 interface ExamTableProps {
   exams: ExamData[];
@@ -86,8 +87,12 @@ export default function ExamTable({
                   ? Math.round((passedCount / attemptedCount) * 100)
                   : 0;
 
+              // Generate edit and details URLs
+              const editUrl = getExamEditUrl(exam);
+              const detailsUrl = getExamDetailsUrl(exam);
+
               return (
-                <TableRow key={exam._id}>
+                <TableRow key={exam._id || exam._id}>
                   <TableCell className="align-top">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
@@ -127,11 +132,11 @@ export default function ExamTable({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-xs font-mono text-gray-600 mt-1 truncate max-w-xs cursor-help">
-                              ID: {exam._id}
+                              ID: {exam._id || exam._id}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Exam ID: {exam._id}</p>
+                            <p>Exam ID: {exam._id || exam._id}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -194,7 +199,10 @@ export default function ExamTable({
                             <CustomSwitch
                               checked={exam.isActive}
                               onCheckedChange={() =>
-                                onToggleStatus(exam._id, exam.isActive)
+                                onToggleStatus(
+                                  exam._id || exam._id,
+                                  exam.isActive
+                                )
                               }
                               activeColor="bg-blue-600"
                               inactiveColor="bg-blue-300"
@@ -218,7 +226,7 @@ export default function ExamTable({
                               className="h-8 w-8"
                               asChild
                             >
-                              <Link href={`/dashboard/exams/edit/${exam._id}`}>
+                              <Link href={editUrl}>
                                 <Edit className="h-4 w-4" />
                               </Link>
                             </Button>
@@ -236,9 +244,7 @@ export default function ExamTable({
                               className="h-8 w-8 text-blue-600"
                               asChild
                             >
-                              <Link
-                                href={`/dashboard/exams/details/${exam._id}`}
-                              >
+                              <Link href={detailsUrl}>
                                 <BarChart2 className="h-4 w-4" />
                               </Link>
                             </Button>
