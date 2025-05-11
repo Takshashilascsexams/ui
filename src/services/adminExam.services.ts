@@ -1,4 +1,6 @@
 import getClerkToken from "@/actions/client/getClerkToken";
+import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
+import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
 
 /**
  * Service to interact with admin exam-related API endpoints
@@ -80,6 +82,61 @@ class ExamAdminService {
       const error = await response.json();
       throw new Error(error.message || "Failed to fetch exam details");
     }
+
+    return await response.json();
+  }
+
+  /**
+   * Get a specific exam by ID
+   * @param examId ID of the exam to fetch
+   */
+  async getExamById(examId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(`${this.apiUrl}/exam/${examId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store", // Always fetch fresh data
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch exam details");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Update an exam
+   * @param examId ID of the exam to update
+   * @param examData Updated exam data
+   */
+  async updateExam(
+    examId: string,
+    examData: { title: string; description: string; isActive: boolean }
+  ) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(`${this.apiUrl}/exam/${examId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(examData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update exam");
+    }
+
+    // Revalidate caches
+    await Promise.all([revalidateTestSeries(), revalidateCategorizedExams()]);
 
     return await response.json();
   }

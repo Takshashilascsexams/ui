@@ -1,30 +1,67 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import AvatarHolder from "@/components/profile/avatar_holder";
-import DetailsHolder from "@/components/profile/details_holder/details_holder";
+import ProfileHeader from "@/components/profile/profile-header";
+import ProfileDetails from "@/components/profile/profile-details";
+// import { convertToRedeableDate } from "@/lib/convertToReadableDate";
 
-export default async function Dashboard() {
+export default async function ProfilePage() {
   const { userId } = await auth();
+
+  if (!userId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-6 rounded-lg border border-slate-200 shadow-md">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-gray-600">Please sign in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
 
   const currentUser = await (
     await clerkClient()
   ).users.getUser(userId as string);
 
-  // console.log(currentUser);
+  // Format user data for display
+  const userData = {
+    imageUrl: currentUser.imageUrl,
+    fullName: (currentUser.publicMetadata.fullName as string) || "User",
+    role: (currentUser.publicMetadata.role as string) || "Student",
+    email: currentUser.emailAddresses[0]?.emailAddress || "Not provided",
+    phoneNumber: currentUser.phoneNumbers[0]?.phoneNumber || "Not provided",
+    dateOfBirth:
+      (currentUser.publicMetadata.dateOfBirth as string) || "Not provided",
+    joined: currentUser.createdAt || Date.now(),
+  };
 
   return (
-    <div className="w-full h-full px-7 lg:px-44 py-10 flex flex-col lg:flex-row items-start justify-center gap-8 border-t-[1px] border-slate-200">
-      <AvatarHolder
-        imageUrl={currentUser.imageUrl}
-        fullName={currentUser.publicMetadata.fullName as string}
-        role={currentUser.publicMetadata.role as string}
-      />
-      <DetailsHolder
-        fullName={currentUser.publicMetadata.fullName as string}
-        email={currentUser.emailAddresses[0].emailAddress}
-        phoneNumber={currentUser.phoneNumbers[0].phoneNumber}
-        joined={currentUser.createdAt}
-        dateOfBirth={currentUser.publicMetadata.dateOfBirth as string}
-      />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">My Profile</h1>
+        <p className="text-gray-600">
+          View and manage your personal information
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
+          <ProfileHeader
+            imageUrl={userData.imageUrl}
+            fullName={userData.fullName}
+            role={userData.role}
+          />
+        </div>
+        <div className="lg:col-span-8">
+          <ProfileDetails
+            fullName={userData.fullName}
+            email={userData.email}
+            phoneNumber={userData.phoneNumber}
+            joined={userData.joined}
+            dateOfBirth={userData.dateOfBirth}
+          />
+        </div>
+      </div>
     </div>
   );
 }
