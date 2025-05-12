@@ -7,6 +7,10 @@ import { toast, Toaster } from "sonner";
 import examAdminService from "@/services/adminExam.services";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExamResultsTable from "./exam-results-table";
+import ExamStatisticsCharts from "./exam-statistics-charts";
+import DashboardLoading from "./dashboard-loading";
+import ExamPublications from "./exam-publications";
 import {
   Card,
   CardContent,
@@ -14,9 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import ExamResultsTable from "./exam-results-table";
-import ExamStatisticsCharts from "./exam-statistics-charts";
-import DashboardLoading from "./dashboard-loading";
 
 // Types
 interface ExamDetailsData {
@@ -175,6 +176,7 @@ export default function ExamDetails({ examId }: ExamDetailsProps) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="results">Student Results</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="publications">Result Publications</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -495,6 +497,11 @@ export default function ExamDetails({ examId }: ExamDetailsProps) {
               <p className="text-gray-600">Detailed analytics coming soon...</p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Results generation */}
+        <TabsContent value="publications">
+          <ExamPublications examId={examId} />
         </TabsContent>
       </Tabs>
 

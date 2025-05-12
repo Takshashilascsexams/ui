@@ -8,6 +8,7 @@ import LoadingSkeleton from "@/components/tests/loading_skeleton";
 async function ExamCatalogue() {
   unstable_noStore();
   const exams = await fetchCategorizedExams();
+  console.log(exams);
 
   // Extract featured exams (if any)
   const featured = exams.data.categorizedExams["FEATURED"] || [];
