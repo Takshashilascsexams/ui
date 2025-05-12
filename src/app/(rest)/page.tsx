@@ -5,13 +5,19 @@ import {
   latestBlogsSectionData,
   currentAffairsSectionData,
 } from "@/utils/arrays";
+import { fetchPublishedResults } from "@/actions/client/fetchPublishedResults";
 
 const notificationText =
   "Results for Indian Polity Test Series are out! Check Now";
 
 export default async function Home() {
   unstable_noStore();
-  const testSeries = await fetchTestSeries();
+
+  // Fetch data in parallel for better performance
+  const [testSeries, publishedResults] = await Promise.all([
+    fetchTestSeries(),
+    fetchPublishedResults(),
+  ]);
 
   return (
     <HomeLayoutEducational
@@ -19,6 +25,7 @@ export default async function Home() {
       testSeries={testSeries}
       latestBlogsData={latestBlogsSectionData}
       currentAffairsData={currentAffairsSectionData}
+      publishedResults={publishedResults}
     />
   );
 }

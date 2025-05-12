@@ -1,17 +1,29 @@
+import React from "react";
 import Notification from "./notification";
 import Hero from "./hero";
 import TestSeriesSection from "./test_series_section";
 import ContentSection from "./content_section";
+import ResultsSection from "./results_section";
 import { TestSeriesType } from "@/actions/client/fetchTestSeries";
 import FeatureSection from "./feature_section";
 import CtaSection from "./cta_section";
 import { currentAffairsAndBlogsSectionDataType } from "@/types/dataTypes";
+
+type ResultPublication = {
+  id: string;
+  examId: string;
+  examTitle: string;
+  fileUrl: string;
+  createdAt: string;
+  studentCount: number;
+};
 
 type HomeLayoutEducationalProp = {
   notificationText: string;
   testSeries: TestSeriesType[];
   latestBlogsData: currentAffairsAndBlogsSectionDataType[];
   currentAffairsData: currentAffairsAndBlogsSectionDataType[];
+  publishedResults?: ResultPublication[]; // Make this optional
 };
 
 export default function HomeLayoutEducational({
@@ -19,12 +31,19 @@ export default function HomeLayoutEducational({
   testSeries,
   latestBlogsData,
   currentAffairsData,
+  publishedResults = [], // Default to empty array
 }: HomeLayoutEducationalProp) {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Hero />
       <Notification notificationText={notificationText} />
       <TestSeriesSection testSeries={testSeries} />
+
+      {/* Add Results Section after TestSeriesSection */}
+      {publishedResults && publishedResults.length > 0 && (
+        <ResultsSection publications={publishedResults} />
+      )}
+
       <ContentSection
         title="Latest Blogs"
         data={latestBlogsData}

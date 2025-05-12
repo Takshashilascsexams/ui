@@ -1,6 +1,7 @@
 import getClerkToken from "@/actions/client/getClerkToken";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
+import axiosInstance from "@/lib/axoisInstance";
 
 /**
  * Service to interact with admin exam-related API endpoints
@@ -188,6 +189,73 @@ class ExamAdminService {
     }
 
     return true;
+  }
+
+  /**
+   * Get exam publications
+   * @param examId ID of the exam
+   */
+  async getExamPublications(examId: string) {
+    try {
+      const token = await getClerkToken();
+      const response = await axiosInstance.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/exams/${examId}/publications`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching exam publications:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate new exam results
+   * @param examId of the exam
+   */
+  async generateExamResults(examId: string) {
+    try {
+      const token = await getClerkToken();
+      const response = await axiosInstance.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/exams/${examId}/generate-results`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error generating exam results:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle publication status
+   * @param publicationId and isPublished of the exam
+   */
+  async togglePublicationStatus(publicationId: string, isPublished: boolean) {
+    try {
+      const token = await getClerkToken();
+      const response = await axiosInstance.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/publications/${publicationId}/status`,
+        { isPublished },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling publication status:", error);
+      throw error;
+    }
   }
 }
 
