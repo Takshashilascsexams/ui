@@ -12,9 +12,9 @@ import { currentAffairsAndBlogsSectionDataType } from "@/types/dataTypes";
 type ResultPublication = {
   id: string;
   examId: string;
-  examTitle: string;
+  title: string;
   fileUrl: string;
-  createdAt: string;
+  publishedAt: string;
   studentCount: number;
 };
 
