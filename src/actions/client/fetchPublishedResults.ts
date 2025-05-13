@@ -1,8 +1,12 @@
 "use server";
 
+import getClerkToken from "./getClerkToken";
+
 export async function fetchPublishedResults() {
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    // Get authentication token
+    const token = await getClerkToken();
 
     // Call the API to get published results
     const response = await fetch(`${API_URL}/publications/active`, {
@@ -10,6 +14,7 @@ export async function fetchPublishedResults() {
       cache: "no-store", // Don't cache results
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 

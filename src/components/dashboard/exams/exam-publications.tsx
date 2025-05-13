@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import examAdminService from "@/services/adminExam.services";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ interface ExamPublicationsProps {
 }
 
 export default function ExamPublications({ examId }: ExamPublicationsProps) {
+  const router = useRouter();
   const [publications, setPublications] = useState<Publication[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -109,12 +111,12 @@ export default function ExamPublications({ examId }: ExamPublicationsProps) {
   };
 
   // Preview PDF
-  const handlePreview = (publicationUrl: string) => {
-    if (!publicationUrl) {
-      toast.error("Preview URL is not available");
+  const handlePreview = (publicationId: string) => {
+    if (!publicationId) {
+      toast.error("Publication ID is not available");
       return;
     }
-    window.open(publicationUrl, "_blank");
+    router.push(`/dashboard/exams/publications/${publicationId}`);
   };
 
   // Download PDF
@@ -214,7 +216,7 @@ export default function ExamPublications({ examId }: ExamPublicationsProps) {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => handlePreview(pub.fileUrl)}
+                            onClick={() => handlePreview(pub.id)}
                             title="Preview"
                           >
                             <Eye className="h-4 w-4" />

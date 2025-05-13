@@ -1,7 +1,6 @@
 import getClerkToken from "@/actions/client/getClerkToken";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
-import axiosInstance from "@/lib/axoisInstance";
 
 /**
  * Service to interact with admin exam-related API endpoints
@@ -198,15 +197,24 @@ class ExamAdminService {
   async getExamPublications(examId: string) {
     try {
       const token = await getClerkToken();
-      const response = await axiosInstance.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/exams/${examId}/publications`,
+      if (!token) throw new Error("Authentication token not available");
+
+      const response = await fetch(
+        `${this.apiUrl}/publications/exams/${examId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: "no-store",
         }
       );
-      return response.data;
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch exam publications");
+      }
+
+      return await response.json();
     } catch (error) {
       console.error("Error fetching exam publications:", error);
       throw error;
@@ -220,15 +228,26 @@ class ExamAdminService {
   async generateExamResults(examId: string) {
     try {
       const token = await getClerkToken();
-      const response = await axiosInstance.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/exams/${examId}/generate-results`,
+      if (!token) throw new Error("Authentication token not available");
+
+      const response = await fetch(
+        `${this.apiUrl}/publications/exams/${examId}/generate-results`,
         {
+          method: "POST",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({}), // Empty object as body instead of headers in body
         }
       );
-      return response.data;
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to generate exam results");
+      }
+
+      return await response.json();
     } catch (error) {
       console.error("Error generating exam results:", error);
       throw error;
@@ -242,20 +261,56 @@ class ExamAdminService {
   async togglePublicationStatus(publicationId: string, isPublished: boolean) {
     try {
       const token = await getClerkToken();
-      const response = await axiosInstance.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/publications/${publicationId}/status`,
-        { isPublished },
+      if (!token) throw new Error("Authentication token not available");
+
+      const response = await fetch(
+        `${this.apiUrl}/publications/${publicationId}/status`,
         {
+          method: "PUT",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({ isPublished }),
         }
       );
-      return response.data;
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to toggle publication status");
+      }
+
+      return await response.json();
     } catch (error) {
       console.error("Error toggling publication status:", error);
       throw error;
     }
+  }
+
+  /**
+   * Get publication details by ID
+   * @param publicationId ID of the publication to fetch
+   */
+  async getPublicationById(publicationId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/admin/publications/${publicationId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store", // Always fetch fresh data
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch publication details");
+    }
+
+    return await response.json();
   }
 }
 
