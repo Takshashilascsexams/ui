@@ -191,6 +191,35 @@ class ExamAdminService {
   }
 
   /**
+   * Fetch exam results with optional filtering, sorting, and pagination
+   * @param {string} examId - ID of the exam
+   * @param {string} queryString - Optional query parameters for filtering/sorting
+   * @returns {Promise<Object>} - Results data with pagination
+   */
+  async getExamResults(examId: string, queryString = "") {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const url = queryString
+      ? `${this.apiUrl}/exam-attempt/exam/${examId}/results?${queryString}`
+      : `${this.apiUrl}/exam-attempt/exam/${examId}/results`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store", // Always fetch fresh data
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch exam results");
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Get exam publications
    * @param examId ID of the exam
    */
