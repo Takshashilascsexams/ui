@@ -38,12 +38,10 @@ export default function HomeLayoutEducational({
       <Hero />
       <Notification notificationText={notificationText} />
       <TestSeriesSection testSeries={testSeries} />
-
       {/* Add Results Section after TestSeriesSection */}
       {publishedResults && publishedResults.length > 0 && (
         <ResultsSection publications={publishedResults} />
       )}
-
       <ContentSection
         title="Latest Blogs"
         data={latestBlogsData}

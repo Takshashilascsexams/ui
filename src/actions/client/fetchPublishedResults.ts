@@ -26,7 +26,7 @@ export async function fetchPublishedResults() {
     const data = await response.json();
 
     // Make sure we're returning the expected format
-    return data?.publications || [];
+    return data.data.publications || [];
   } catch (error) {
     console.error("Error fetching published results:", error);
     return [];

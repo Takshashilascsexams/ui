@@ -44,7 +44,20 @@ export default function PublicationViewer({
         );
 
         if (response.status === "success") {
-          setPublication(response.data.publication);
+          const pub = response.data.publication;
+
+          // Process the fileUrl to ensure it's properly formatted for the current environment
+          // For S3 URLs in production (which are absolute URLs starting with https),
+          // we don't need to modify them
+          if (
+            pub.fileUrl &&
+            !pub.fileUrl.startsWith("http") &&
+            !pub.fileUrl.startsWith("/")
+          ) {
+            pub.fileUrl = `/${pub.fileUrl}`;
+          }
+
+          setPublication(pub);
         } else {
           setError("Failed to load publication details");
           toast.error("Failed to load publication details");
@@ -64,8 +77,20 @@ export default function PublicationViewer({
   const handleDownload = () => {
     if (!publication) return;
 
+    // Ensure we have a properly formatted URL for download
+    let downloadUrl = publication.fileUrl;
+
+    // If it's a relative URL and we're in the browser
+    if (!downloadUrl.startsWith("http") && typeof window !== "undefined") {
+      // Use the full origin for relative URLs
+      if (!downloadUrl.startsWith("/")) {
+        downloadUrl = `/${downloadUrl}`;
+      }
+      downloadUrl = `${window.location.origin}${downloadUrl}`;
+    }
+
     const link = document.createElement("a");
-    link.href = publication.fileUrl;
+    link.href = downloadUrl;
     link.download = `${publication.examTitle.replace(/\s+/g, "-")}-results.pdf`;
     document.body.appendChild(link);
     link.click();
