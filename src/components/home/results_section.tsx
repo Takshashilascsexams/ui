@@ -6,9 +6,9 @@ import { format } from "date-fns";
 type ResultPublication = {
   id: string;
   examId: string;
-  examTitle: string;
+  title: string;
   fileUrl: string;
-  createdAt: string;
+  publishedAt: string;
   studentCount: number;
 };
 
@@ -38,42 +38,44 @@ export default function ResultsSection({ publications }: ResultSectionProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {publications.slice(0, 6).map((pub) => (
-            <div
-              key={pub.id}
-              className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border border-slate-200"
-            >
-              <div className="p-5">
-                <h3 className="text-lg font-bold text-[#2E4057] mb-3 flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-blue-600" />
-                  {pub.examTitle}
-                </h3>
+          {publications.slice(0, 6).map((pub) => {
+            return (
+              <div
+                key={pub.id}
+                className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border border-slate-200"
+              >
+                <div className="p-5">
+                  <h3 className="text-lg font-bold text-[#2E4057] mb-3 flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                    {pub.title}
+                  </h3>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Published:</span>
-                    <span>
-                      {format(new Date(pub.createdAt), "MMM d, yyyy")}
-                    </span>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Published:</span>
+                      <span>
+                        {format(new Date(pub.publishedAt), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Students:</span>
+                      <span>{pub.studentCount} participants</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Students:</span>
-                    <span>{pub.studentCount} participants</span>
-                  </div>
+
+                  <Link
+                    href={pub.fileUrl}
+                    target="_blank"
+                    download={`${pub.title.replace(/\s+/g, "-")}-results.pdf`}
+                    className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Results
+                  </Link>
                 </div>
-
-                <Link
-                  href={pub.fileUrl}
-                  target="_blank"
-                  download={`${pub.examTitle.replace(/\s+/g, "-")}-results.pdf`}
-                  className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Results
-                </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

@@ -296,7 +296,7 @@ class ExamAdminService {
     if (!token) throw new Error("Authentication token not available");
 
     const response = await fetch(
-      `${this.apiUrl}/admin/publications/${publicationId}`,
+      `${this.apiUrl}/publications/${publicationId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
