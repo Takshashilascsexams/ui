@@ -227,12 +227,27 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     const calculateSyncInterval = () => {
       const timeRemaining = state.timeRemaining;
 
-      if (timeRemaining < 300) {
-        return 2 * 60000; // Less than 5 minutes - sync every 2 minutes
-      } else if (timeRemaining < 600 || pendingAnswersRef.current.size > 20) {
-        return 5 * 60000; // Less than 10 minutes or many pending answers - sync every 5 minutes
+      // Ensure we have a valid duration, default to 3600 seconds (60 min)
+      const totalDuration =
+        (state.examDetails && state.examDetails.duration * 60) || 3600;
+
+      // Guard against division by zero or negative values
+      if (totalDuration <= 0) return 5 * 60000; // default 5 min if invalid
+
+      // Calculate percentage and handle edge cases
+      const percentRemaining = Math.min(
+        100,
+        Math.max(0, (timeRemaining / totalDuration) * 100)
+      );
+
+      if (percentRemaining < 10) {
+        return 2 * 60000; // Last 10% of exam - sync every 2 minutes
+      } else if (percentRemaining < 20) {
+        return 4 * 60000; // 10-20% remaining - sync every 4 minutes
+      } else if (percentRemaining < 50) {
+        return 6 * 60000; // 20-50% remaining - sync every 6 minutes
       }
-      return 10 * 60000; // Default: 10 minutes
+      return 8 * 60000; // More than 50% remaining - sync every 8 minutes
     };
 
     // Check if enough time has passed since last sync
@@ -300,6 +315,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     }
   }, [
     state.attemptId,
+    state.examDetails,
     state.status,
     state.timeRemaining,
     syncPendingAnswers,
@@ -313,15 +329,29 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
 
     // Calculate adaptive interval based on time remaining
     const getAdaptiveInterval = () => {
-      if (state.timeRemaining < 300) {
-        // Less than 5 minutes
-        return 30 * 1000; // 30 seconds
-      } else if (state.timeRemaining < 600) {
-        // Less than 10 minutes
-        return 60 * 1000; // 1 minute
-      } else {
-        return 5 * 60 * 1000; // 5 minutes
+      const timeRemaining = state.timeRemaining;
+
+      // Ensure we have a valid duration, default to 3600 seconds (60 min)
+      const totalDuration =
+        (state.examDetails && state.examDetails.duration * 60) || 3600;
+
+      // Guard against division by zero or negative values
+      if (totalDuration <= 0) return 3 * 60000; // default 3 min if invalid
+
+      // Calculate percentage and handle edge cases
+      const percentRemaining = Math.min(
+        100,
+        Math.max(0, (timeRemaining / totalDuration) * 100)
+      );
+
+      if (percentRemaining < 5) {
+        return 45 * 1000; // Last 5% - check every 45 seconds
+      } else if (percentRemaining < 15) {
+        return 90 * 1000; // 5-15% remaining - check every 90 seconds
+      } else if (percentRemaining < 30) {
+        return 3 * 60 * 1000; // 15-30% remaining - check every 3 minutes
       }
+      return 4 * 60 * 1000; // More than 30% remaining - check every 4 minutes
     };
 
     // Check if enough time has passed since last check
@@ -358,6 +388,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     }
   }, [
     state.attemptId,
+    state.examDetails,
     state.status,
     state.timeRemaining,
     dispatch,
