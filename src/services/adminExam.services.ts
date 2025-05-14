@@ -220,6 +220,32 @@ class ExamAdminService {
   }
 
   /**
+   * Get detailed student result by attempt ID
+   * @param attemptId ID of the exam attempt
+   */
+  async getStudentDetailedResult(attemptId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/student-result/${attemptId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store", // Always fetch fresh data
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch student result");
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Get exam publications
    * @param examId ID of the exam
    */
