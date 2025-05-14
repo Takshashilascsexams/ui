@@ -52,6 +52,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isTimerSyncing, setIsTimerSyncing] = useState(false);
+  const [serverTime, setServerTime] = useState<number | null>(null);
 
   // Refs for optimization
   const pendingAnswersRef = useRef<Map<string, PendingAnswer>>(new Map());
@@ -59,6 +60,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const isOnlineRef = useRef(navigator.onLine);
   const isSubmittingRef = useRef(false);
   const lastSyncTimeRef = useRef<number>(Date.now());
+  const lastServerCheckTimeRef = useRef<number>(Date.now());
 
   // Sync pending answers with server
   const syncPendingAnswers = useCallback(
@@ -105,6 +107,103 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     [state.attemptId, state.status]
   );
 
+  // Handle submitting the exam
+  const handleSubmitExam = useCallback(async () => {
+    if (!state.attemptId || isSubmittingRef.current) return;
+
+    try {
+      setSubmitting(true);
+      isSubmittingRef.current = true;
+
+      // Clear any timers immediately to prevent further API calls
+      if (syncTimerTimeoutRef.current) {
+        clearTimeout(syncTimerTimeoutRef.current);
+        syncTimerTimeoutRef.current = null;
+      }
+
+      // Sync any pending answers first
+      await syncPendingAnswers(true);
+
+      // IMPORTANT CHANGE: Skip the time update entirely if status is timed-out
+      // This prevents the "already timed-out" error
+      if (state.status === "in-progress") {
+        console.log("calling update time after timer is 0");
+        try {
+          await examService.updateTimeRemaining(
+            state.attemptId,
+            state.timeRemaining
+          );
+        } catch (err) {
+          console.error(
+            "Error updating time remaining before submission:",
+            err
+          );
+          // Check if the error is about exam being timed-out already
+          if (
+            err instanceof Error &&
+            err.message.includes("already timed-out")
+          ) {
+            // Update our local state to match the server state
+            dispatch({ type: "SET_STATUS", payload: "timed-out" });
+          }
+        }
+      } else {
+        console.log("Skipping time update - exam is already timed-out");
+      }
+
+      // Submit the exam with retry logic
+      let attempts = 0;
+      let success = false;
+
+      while (attempts < 3 && !success) {
+        try {
+          await examService.submitExam(state.attemptId);
+          success = true;
+        } catch (err) {
+          attempts++;
+          console.error(`Submission attempt ${attempts} failed:`, err);
+
+          if (attempts >= 3) throw err;
+
+          // Wait with exponential backoff
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, attempts - 1))
+          );
+        }
+      }
+
+      // After successful submission
+      if (success) {
+        // Update local state to completed
+        dispatch({ type: "SET_STATUS", payload: "completed" });
+
+        // Use replace instead of push to prevent back navigation to exam
+        router.replace(`/thankyou`);
+
+        // Clear any remaining state/refs that might cause re-renders
+        if (pendingAnswersRef.current) {
+          pendingAnswersRef.current.clear();
+        }
+        if (syncTimerTimeoutRef.current) {
+          clearTimeout(syncTimerTimeoutRef.current);
+          syncTimerTimeoutRef.current = null;
+        }
+      }
+    } catch (err) {
+      console.error("Error submitting exam:", err);
+      toast.error("Failed to submit exam. Please try again.");
+      setSubmitting(false);
+      isSubmittingRef.current = false;
+    }
+  }, [
+    state.attemptId,
+    state.status,
+    state.timeRemaining,
+    router,
+    syncPendingAnswers,
+    dispatch,
+  ]);
+
   // Sync timer with backend with reduced frequency (10 min default)
   const syncTimeRemaining = useCallback(async () => {
     // Clear any existing timeout
@@ -118,6 +217,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       !state.attemptId ||
       state.status !== "in-progress" ||
       !isOnlineRef.current ||
+      isSubmittingRef.current ||
       state.timeRemaining <= 60 // Skip sync if less than 60 seconds remain
     ) {
       return;
@@ -151,10 +251,15 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
 
       // Verify still in progress before updating
       if (state.status === "in-progress") {
-        await examService.updateTimeRemaining(
+        const response = await examService.updateTimeRemaining(
           state.attemptId,
           state.timeRemaining
         );
+
+        // Update server time from response
+        if (response.serverTime) {
+          setServerTime(response.serverTime);
+        }
 
         lastSyncTimeRef.current = Date.now();
 
@@ -168,6 +273,8 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       if (err instanceof Error && err.message.includes("already timed-out")) {
         dispatch({ type: "SET_STATUS", payload: "timed-out" });
         setIsTimerSyncing(false);
+        toast.warning("Time's up! Your exam will be submitted automatically.");
+        setTimeout(() => handleSubmitExam(), 2000);
         return;
       }
 
@@ -197,6 +304,64 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     state.timeRemaining,
     syncPendingAnswers,
     dispatch,
+    handleSubmitExam,
+  ]);
+
+  // Fetch server time and sync it with the UI
+  const checkServerTime = useCallback(async () => {
+    if (!state.attemptId || state.status !== "in-progress") return;
+
+    // Calculate adaptive interval based on time remaining
+    const getAdaptiveInterval = () => {
+      if (state.timeRemaining < 300) {
+        // Less than 5 minutes
+        return 30 * 1000; // 30 seconds
+      } else if (state.timeRemaining < 600) {
+        // Less than 10 minutes
+        return 60 * 1000; // 1 minute
+      } else {
+        return 5 * 60 * 1000; // 5 minutes
+      }
+    };
+
+    // Check if enough time has passed since last check
+    const now = Date.now();
+    const minInterval = getAdaptiveInterval();
+
+    if (now - lastServerCheckTimeRef.current < minInterval) return;
+    lastServerCheckTimeRef.current = now;
+
+    try {
+      const response = await examService.getTimeCheck(state.attemptId);
+
+      if (response?.data) {
+        // Update time remaining from server
+        dispatch({
+          type: "UPDATE_TIME",
+          payload: response.data.timeRemaining,
+        });
+
+        // Update server time
+        if (response.data.serverTime) {
+          setServerTime(response.data.serverTime);
+        }
+
+        // Check if timed out
+        if (response.data.status === "timed-out") {
+          dispatch({ type: "SET_STATUS", payload: "timed-out" });
+          // Auto-submit after a short delay
+          setTimeout(() => handleSubmitExam(), 2000);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking server time:", error);
+    }
+  }, [
+    state.attemptId,
+    state.status,
+    state.timeRemaining,
+    dispatch,
+    handleSubmitExam,
   ]);
 
   // Check exam-attempt status on load
@@ -256,6 +421,30 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     };
   }, [state.attemptId, state.status, syncPendingAnswers, syncTimeRemaining]);
 
+  // Add server time check on component mount and reconnection
+  useEffect(() => {
+    // Check server time on mount
+    checkServerTime();
+
+    // Set up online event listener
+    const handleOnline = () => {
+      isOnlineRef.current = true;
+      toast.success("You're back online");
+
+      // Check server time for accurate time remaining
+      checkServerTime();
+
+      // Sync any pending answers when back online
+      syncPendingAnswers();
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [checkServerTime, syncPendingAnswers]);
+
   // Load exam data on component mount
   useEffect(() => {
     const loadExamData = async () => {
@@ -282,6 +471,11 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
         }
 
         const { attempt, exam, questions } = response.data;
+
+        // Capture server time if provided
+        if (response.data?.attempt?.serverTime) {
+          setServerTime(response.data.attempt.serverTime);
+        }
 
         // Format questions
         type QuestionData = {
@@ -398,97 +592,6 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       dispatch({ type: "CLEANUP" });
     };
   }, [dispatch]);
-
-  // Handle submitting the exam
-  const handleSubmitExam = useCallback(async () => {
-    if (!state.attemptId || isSubmittingRef.current) return;
-
-    try {
-      setSubmitting(true);
-      isSubmittingRef.current = true;
-
-      // Sync any pending answers first
-      await syncPendingAnswers(true);
-
-      // IMPORTANT CHANGE: Skip the time update entirely if status is timed-out
-      // This prevents the "already timed-out" error
-      if (state.status === "in-progress") {
-        console.log("calling update time after timer is 0");
-        try {
-          await examService.updateTimeRemaining(
-            state.attemptId,
-            state.timeRemaining
-          );
-        } catch (err) {
-          console.error(
-            "Error updating time remaining before submission:",
-            err
-          );
-          // Check if the error is about exam being timed-out already
-          if (
-            err instanceof Error &&
-            err.message.includes("already timed-out")
-          ) {
-            // Update our local state to match the server state
-            dispatch({ type: "SET_STATUS", payload: "timed-out" });
-          }
-        }
-      } else {
-        console.log("Skipping time update - exam is already timed-out");
-      }
-
-      // Submit the exam with retry logic
-      let attempts = 0;
-      let success = false;
-
-      while (attempts < 3 && !success) {
-        try {
-          await examService.submitExam(state.attemptId);
-          success = true;
-        } catch (err) {
-          attempts++;
-          console.error(`Submission attempt ${attempts} failed:`, err);
-
-          if (attempts >= 3) throw err;
-
-          // Wait with exponential backoff
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1000 * Math.pow(2, attempts - 1))
-          );
-        }
-      }
-
-      // After successful submission
-      if (success) {
-        // Update local state to completed
-        dispatch({ type: "SET_STATUS", payload: "completed" });
-
-        // Use replace instead of push to prevent back navigation to exam
-        router.replace(`/thankyou`);
-
-        // Clear any remaining state/refs that might cause re-renders
-        if (pendingAnswersRef.current) {
-          pendingAnswersRef.current.clear();
-        }
-        if (syncTimerTimeoutRef.current) {
-          clearTimeout(syncTimerTimeoutRef.current);
-          syncTimerTimeoutRef.current = null;
-        }
-      }
-    } catch (err) {
-      console.error("Error submitting exam:", err);
-      toast.error("Failed to submit exam. Please try again.");
-      setSubmitting(false);
-      isSubmittingRef.current = false;
-    }
-  }, [
-    state.attemptId,
-    state.status,
-    state.timeRemaining,
-    router,
-    syncPendingAnswers,
-    dispatch,
-  ]);
 
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
@@ -732,12 +835,15 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
           </div>
 
           <div className="space-y-6">
-            <ExamTimer
-              timeRemaining={state.timeRemaining}
-              onTimeUpdate={handleTimeUpdate}
-              onTimeExpired={handleTimerComplete}
-              isSyncing={isTimerSyncing}
-            />
+            {currentQuestion && (
+              <ExamTimer
+                timeRemaining={state.timeRemaining}
+                onTimeUpdate={handleTimeUpdate}
+                onTimeExpired={handleTimerComplete}
+                isSyncing={isTimerSyncing}
+                serverTime={serverTime || undefined} // Pass undefined when null for proper typing
+              />
+            )}
 
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-sm font-medium text-gray-700 mb-2">
