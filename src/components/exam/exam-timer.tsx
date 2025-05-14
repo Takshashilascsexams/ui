@@ -6,50 +6,91 @@ interface ExamTimerProps {
   onTimeUpdate: (time: number) => void;
   onTimeExpired: () => void;
   isSyncing?: boolean;
+  serverTime?: number; // New prop for server time
 }
 
 export default function ExamTimer({
   timeRemaining,
   onTimeUpdate,
   onTimeExpired,
-}: // isSyncing = false,
-ExamTimerProps) {
-  // Use a ref to track the previous time value
+  isSyncing = false,
+  serverTime,
+}: ExamTimerProps) {
+  // Track time offset between client and server using a ref instead of state
+  const timeOffsetRef = useRef<number>(0);
+
+  // Track the previous time value
   const prevTimeRef = useRef(timeRemaining);
 
-  // Use useEffect to handle timer logic
+  // Track the last time the timer was updated locally
+  const lastTickTime = useRef(Date.now());
+
+  // Track absolute end time (calculated from server data)
+  const absoluteEndTimeRef = useRef<number | null>(null);
+
+  // Calculate and set time offset when serverTime is provided
   useEffect(() => {
-    // Don't start timer if no time remains
+    if (serverTime && timeRemaining > 0) {
+      // Calculate absolute end time from server perspective
+      const serverEndTime = serverTime + timeRemaining * 1000;
+
+      // Store the absolute end time
+      absoluteEndTimeRef.current = serverEndTime;
+
+      // Calculate offset between client and server time - store in ref
+      timeOffsetRef.current = Date.now() - serverTime;
+
+      // Reset last tick time
+      lastTickTime.current = Date.now();
+    }
+  }, [serverTime, timeRemaining]);
+
+  // Timer effect
+  useEffect(() => {
     if (timeRemaining <= 0) {
       onTimeExpired();
       return;
     }
 
-    // Only update the ref when timeRemaining changes from props
+    // Update the ref when timeRemaining changes from props
     prevTimeRef.current = timeRemaining;
 
-    // Set up timer interval
+    // Store the exact second value when timer starts
+    const startSecond = Math.floor(Date.now() / 1000);
+    const initialSeconds = timeRemaining;
+
+    // Set up timer interval with more frequent checks
     const timer = setInterval(() => {
-      // Use functional update pattern with the callback
-      // This reads the current value directly from the ref
-      const newTime = Math.max(0, prevTimeRef.current - 1);
+      let newTime: number;
 
-      // Update the ref first
-      prevTimeRef.current = newTime;
-
-      // Then call the update function
-      onTimeUpdate(newTime);
-
-      // Check if time expired
-      if (newTime === 0) {
-        clearInterval(timer);
-        onTimeExpired();
+      if (absoluteEndTimeRef.current !== null) {
+        // Use timeOffsetRef (not state) to adjust for server-client clock differences
+        const adjustedNow = Date.now() - timeOffsetRef.current;
+        newTime = Math.max(
+          0,
+          Math.ceil((absoluteEndTimeRef.current - adjustedNow) / 1000)
+        );
+      } else {
+        // Fallback calculation based on elapsed whole seconds
+        const currentSecond = Math.floor(Date.now() / 1000);
+        const elapsedSeconds = currentSecond - startSecond;
+        newTime = Math.max(0, initialSeconds - elapsedSeconds);
       }
-    }, 1000);
 
-    // Clean up interval on unmount or when timeRemaining changes
+      // Only update if time has changed
+      if (newTime !== prevTimeRef.current) {
+        prevTimeRef.current = newTime;
+        onTimeUpdate(newTime);
+
+        if (newTime === 0) {
+          clearInterval(timer);
+          onTimeExpired();
+        }
+      }
+    }, 200); // Run 5x per second for better precision
+
     return () => clearInterval(timer);
-  }, [timeRemaining, onTimeUpdate, onTimeExpired]);
+  }, [timeRemaining, onTimeUpdate, onTimeExpired]); // Remove serverTime from dependencies
 
   // Format time as HH:MM:SS
   const formatTime = (seconds: number) => {
@@ -68,6 +109,11 @@ ExamTimerProps) {
       <div className="text-2xl font-bold text-center py-2">
         {formatTime(timeRemaining)}
       </div>
+      {isSyncing && (
+        <div className="text-xs text-center text-gray-500">
+          Syncing with server...
+        </div>
+      )}
     </Card>
   );
 }

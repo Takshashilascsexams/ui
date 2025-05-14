@@ -154,6 +154,30 @@ class ExamService {
   }
 
   /**
+   * Get server time check
+   */
+  async getTimeCheck(attemptId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/time-check/${attemptId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to get time check");
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Update time remaining for an exam attempt
    */
   async updateTimeRemaining(attemptId: string, timeRemaining: number) {
@@ -177,7 +201,13 @@ class ExamService {
       throw new Error(error.message || "Failed to update time");
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Return server time and time remaining for sync
+    return {
+      ...data,
+      serverTime: data.data?.serverTime || Date.now(),
+    };
   }
 
   /**
