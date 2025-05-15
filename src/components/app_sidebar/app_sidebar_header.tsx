@@ -15,15 +15,15 @@ export default function AppSidebarHeader() {
   return (
     <SidebarHeader>
       <SidebarMenu>
-        <SidebarMenuItem className="py-4 flex items-center justify-between">
+        <SidebarMenuItem className="py-2 flex items-center justify-between">
           <SidebarMenuButton
-            className="w-[70px] h-[70px] relative"
+            className="w-[90px] h-[60px] relative flex items-center justify-start"
             onClick={() => router.push("/")}
           >
             <CustomImage
               src={"/images/logo.webp"}
               alt="logo"
-              sizes="(max-width: 768px) 70px, (min-width: 769px) 70px"
+              sizes="(max-width: 768px) 60px, (min-width: 769px) 60px"
             />
           </SidebarMenuButton>
         </SidebarMenuItem>
