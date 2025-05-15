@@ -80,7 +80,7 @@ class QuestionAdminService {
     });
 
     const response = await fetch(
-      `${this.apiUrl}/question?${queryParams.toString()}`,
+      `${this.apiUrl}/questions?${queryParams.toString()}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@ class QuestionAdminService {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    const response = await fetch(`${this.apiUrl}/question/${questionId}`, {
+    const response = await fetch(`${this.apiUrl}/questions/${questionId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -131,7 +131,7 @@ class QuestionAdminService {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    const response = await fetch(`${this.apiUrl}/question/${questionId}`, {
+    const response = await fetch(`${this.apiUrl}/questions/${questionId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -156,7 +156,7 @@ class QuestionAdminService {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    const response = await fetch(`${this.apiUrl}/question/${questionId}`, {
+    const response = await fetch(`${this.apiUrl}/questions/${questionId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
