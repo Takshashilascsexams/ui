@@ -16,7 +16,7 @@ export default async function Layout({
         avatar={(currentUser?.imageUrl as string) || "/images/avatar.webp"}
         fullName={(currentUser?.publicMetadata?.fullName as string) || "user"}
       />
-      <main className="flex-1 h-screen overflow-hidden flex flex-col">
+      <main className="flex-1 overflow-hidden flex flex-col">
         <DashboardHeader />
         {children}
       </main>

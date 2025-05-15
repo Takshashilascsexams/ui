@@ -10,10 +10,13 @@ type AppSidebarPropType = {
 
 export default function AppSidebar(props: AppSidebarPropType) {
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar
+      collapsible="icon"
+      className="bg-gray-50 border-r border-slate-200"
+    >
       <AppSidebarHeader />
       <AppSidebarContent />
-      <SidebarSeparator className="bg-slate-200" />
+      <SidebarSeparator className="bg-slate-200 hidden" />
       <AppSidebarFooter {...props} />
     </Sidebar>
   );
