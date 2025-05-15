@@ -62,7 +62,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const lastSyncTimeRef = useRef<number>(Date.now());
   const lastServerCheckTimeRef = useRef<number>(Date.now());
 
-  // Sync pending answers with server
+  // Sync pending answers with server using batch processing
   const syncPendingAnswers = useCallback(
     async (isForced = false) => {
       if (
@@ -75,32 +75,45 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       // Don't sync if we're not in-progress, unless forced
       if (state.status !== "in-progress" && !isForced) return;
 
-      // Clone and clear the pending answers
+      // Clone the pending answers
       const pendingAnswers = new Map(pendingAnswersRef.current);
+
+      // Only clear if not forced - this maintains the behavior of the original code
+      // where forced syncs (like during page unload) don't remove items from the queue
       if (!isForced) {
         pendingAnswersRef.current.clear();
       }
 
-      // Process each pending answer
-      for (const [questionId, answerData] of pendingAnswers.entries()) {
-        try {
-          await examService.saveAnswer(state.attemptId, questionId, {
-            selectedOption: answerData.selectedOption as string,
+      try {
+        // Convert the Map to an array for batch processing
+        const batchAnswers = Array.from(pendingAnswers.entries()).map(
+          ([questionId, answerData]) => ({
+            questionId,
+            selectedOption: answerData.selectedOption,
             responseTime: answerData.responseTime,
-          });
-        } catch (err) {
-          console.error(`Error saving answer for question ${questionId}:`, err);
+          })
+        );
 
-          // If we're online but the request failed, retry adding it back to pending
-          if (isOnlineRef.current && !isForced) {
+        // Send all answers in a single batch request
+        await examService.saveBatchAnswers(state.attemptId, batchAnswers);
+
+        // Update the last sync time
+        lastSyncTimeRef.current = Date.now();
+      } catch (err) {
+        console.error(`Error saving batch answers:`, err);
+
+        // If we're online but the request failed and not forced,
+        // add the answers back to the pending queue
+        if (isOnlineRef.current && !isForced) {
+          for (const [questionId, answerData] of pendingAnswers.entries()) {
             pendingAnswersRef.current.set(questionId, answerData);
           }
+        }
 
-          if (!isForced) {
-            toast.error(
-              "Failed to save your answer. We'll retry automatically."
-            );
-          }
+        if (!isForced) {
+          toast.error(
+            "Failed to save your answers. We'll retry automatically."
+          );
         }
       }
     },

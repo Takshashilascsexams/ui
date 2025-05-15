@@ -154,6 +154,40 @@ class ExamService {
   }
 
   /**
+   * Save batch answers as an array
+   */
+  async saveBatchAnswers(
+    attemptId: string,
+    answers: Array<{
+      questionId: string;
+      selectedOption: string | null;
+      responseTime: number;
+    }>
+  ) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/batch-answers/${attemptId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ answers }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to save batch answers");
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Get server time check
    */
   async getTimeCheck(attemptId: string) {
