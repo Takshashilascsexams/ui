@@ -136,7 +136,7 @@ const addNewTestFormSchema = z
       );
     },
     {
-      message: "Pass percentage should be at least 35% of total marks.",
+      message: "Pass mark percentage should be at least 30% of total marks.",
       path: ["passMarkPercentage"],
     }
   )
@@ -210,8 +210,6 @@ export default function CreateExamForm() {
         values.discountPrice = "";
         values.accessPeriod = "0";
       }
-
-      console.log(values);
 
       // If not part of a bundle, clear bundle tag
       if (!values.isPartOfBundle) {
@@ -447,7 +445,7 @@ export default function CreateExamForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Pass mark
+                  Pass mark percentage
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>

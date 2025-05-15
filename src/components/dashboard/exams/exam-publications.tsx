@@ -47,6 +47,7 @@ export default function ExamPublications({ examId }: ExamPublicationsProps) {
     try {
       setLoading(true);
       const response = await examAdminService.getExamPublications(examId);
+
       if (response?.status === "success") {
         setPublications(response.data.publications);
       } else {
