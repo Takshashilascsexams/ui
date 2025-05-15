@@ -1,16 +1,16 @@
-import Link from "next/link";
 import BreadcrumbsHolder from "@/components/breadcrumbs-holder/breadcrumbs-holder";
+import QuestionsDashboard from "@/components/dashboard/questions/questions-dashboard";
 
-export default function Page() {
+export const metadata = {
+  title: "Question Management Dashboard",
+  description: "View and manage all questions in the system",
+};
+
+export default function QuestionsPage() {
   return (
-    <div className="w-full h-full relative overflow-y-auto">
+    <div className="w-full h-full relative overflow-y-auto pb-10">
       <BreadcrumbsHolder />
-      <Link
-        href={"/dashboard/questions/create-question"}
-        className="px-4 py-2 bg-customButtonBg rounded-md text-white"
-      >
-        Add questions
-      </Link>
+      <QuestionsDashboard />
     </div>
   );
 }
