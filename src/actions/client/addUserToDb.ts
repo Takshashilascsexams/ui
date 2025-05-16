@@ -14,13 +14,14 @@ export const addUserToDb = async (onboardingData: OnboardingDataType) => {
   const userCount = await client.users.getCount();
   const currentUser = await client.users.getUser(userId);
 
-  const { id, imageUrl, emailAddresses, phoneNumbers } = currentUser;
+  const { id, imageUrl, emailAddresses } = currentUser;
 
   const userObject = {
     ...onboardingData,
     clerkId: id,
     email: emailAddresses[0].emailAddress,
-    phoneNumber: phoneNumbers[0].phoneNumber,
+    // phoneNumber: phoneNumbers[0].phoneNumber,
+    phoneNumber: 8133982411,
     role: userCount === 1 ? "Admin" : "Student",
     avatar: imageUrl,
   };
