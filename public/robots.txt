@@ -1,0 +1,20 @@
+# robots.txt file for https://exams.takshashilascs.com
+User-agent: *
+
+# Allow public pages
+Allow: /
+Allow: /tests
+Allow: /tests/$
+Allow: /sign-in
+Allow: /sign-up
+
+# Disallow private or admin routes
+Disallow: /dashboard/
+Disallow: /exam/
+Disallow: /results/
+Disallow: /onboarding/
+Disallow: /api/
+Disallow: /_next/
+
+# Sitemap location
+Sitemap: https://exams.takshashilascs.com/sitemap.xml
