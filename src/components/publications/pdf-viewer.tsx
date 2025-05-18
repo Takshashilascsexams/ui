@@ -2,83 +2,109 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { ExternalLink, FileDown } from "lucide-react";
 
 interface PDFViewerProps {
   url: string;
   title: string;
 }
 
+/**
+ * PDF viewer component for Firebase Storage PDFs
+ *
+ * @param {Object} props
+ * @param {string} props.url - URL to the PDF (Firebase Storage or local)
+ * @param {string} props.title - Title for the PDF (used for download filename)
+ */
 export default function PDFViewer({ url, title }: PDFViewerProps) {
-  const [iframeError, setIframeError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  // Process the URL for both development and production
-  const processedUrl = (() => {
-    // If it's already an absolute URL (starts with http/https), return as is
-    if (url.startsWith("http")) return url;
+  console.log("Rendering PDF with URL:", url);
 
-    // If it's a relative URL, ensure it has a leading slash
-    if (!url.startsWith("/")) return `/${url}`;
-
-    return url;
-  })();
-
-  const handleIframeError = () => {
-    console.error("Error loading PDF from URL:", processedUrl);
-    setIframeError(true);
+  // Handle iframe load event
+  const handleLoad = () => {
+    console.log("PDF loaded successfully");
     setIsLoading(false);
   };
 
-  const handleIframeLoad = () => {
+  // Handle iframe error event
+  const handleError = () => {
+    console.error("Error loading PDF from URL:", url);
+    setLoadError(true);
     setIsLoading(false);
   };
 
+  // Open PDF in a new tab
   const openInNewTab = () => {
-    window.open(processedUrl, "_blank");
+    window.open(url, "_blank");
+  };
+
+  // Download the PDF
+  const downloadPdf = () => {
+    // Create an anchor element and trigger download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title || "document"}.pdf`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <div className="w-full h-full flex flex-col">
-      {isLoading && !iframeError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+      {/* Loading indicator */}
+      {isLoading && !loadError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       )}
 
-      {iframeError ? (
+      {/* Error state */}
+      {loadError ? (
         <div className="flex flex-col items-center justify-center p-10 text-center bg-gray-50 border rounded-md h-[500px]">
-          <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
+          <div className="text-amber-500 text-5xl mb-4">⚠️</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Unable to display PDF
           </h3>
           <p className="text-gray-600 mb-6 max-w-md">
-            {`The PDF viewer couldn't load the document in this window. This could
-            be due to browser restrictions or the PDF format.`}
+            {`The PDF viewer couldn't display this document directly. You can try
+            opening it in a new tab or downloading it.`}
           </p>
           <div className="space-y-4">
-            <Button onClick={openInNewTab} className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Open in New Tab
-            </Button>
-            <div className="text-sm text-gray-500">
+            <div className="flex gap-2">
+              <Button
+                onClick={openInNewTab}
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open in New Tab
+              </Button>
+              <Button onClick={downloadPdf} className="flex items-center gap-2">
+                <FileDown className="h-4 w-4" />
+                Download PDF
+              </Button>
+            </div>
+            <div className="text-sm text-gray-500 mt-4">
               URL:{" "}
-              <code className="bg-gray-100 px-1 py-0.5 rounded">
-                {processedUrl}
-              </code>
+              <code className="bg-gray-100 px-1 py-0.5 rounded">{url}</code>
             </div>
           </div>
         </div>
       ) : (
-        <div className="w-full h-[700px] relative">
+        <div className="w-full h-[700px] relative border rounded-md overflow-hidden">
+          {/* PDF iframe */}
           <iframe
-            src={processedUrl}
+            src={url}
             className="w-full h-full border-none"
-            title={title}
-            onError={handleIframeError}
-            onLoad={handleIframeLoad}
+            title={title || "PDF Document"}
+            onLoad={handleLoad}
+            onError={handleError}
           />
-          <div className="absolute top-2 right-2">
+
+          {/* Action buttons */}
+          <div className="absolute top-2 right-2 flex gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -87,6 +113,15 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in New Tab
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white/80 backdrop-blur-sm"
+              onClick={downloadPdf}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </div>
         </div>
