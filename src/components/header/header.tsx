@@ -60,7 +60,39 @@ function ProfileDropdownMenu({ children }: DropDownMenuPropType) {
 }
 
 export default function Header({ avatar, fullName }: HeaderPropType) {
-  const username = fullName.split(" ")[0].slice(0, 10);
+  // Handle the username with multiple approaches for better display
+  const getDisplayName = () => {
+    // Handle empty or undefined name
+    if (!fullName || fullName.trim() === "") {
+      return "User";
+    }
+
+    // Get first name
+    const firstName = fullName.split(" ")[0];
+
+    // For very long first names (over 15 chars), use initials instead
+    if (firstName.length > 15) {
+      // Create initials from the full name
+      const initials = fullName
+        .split(" ")
+        .map((name) => name.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
+      return initials;
+    }
+
+    // For moderately long names (10-15 chars), truncate with ellipsis
+    if (firstName.length > 10) {
+      return `${firstName.slice(0, 10)}...`;
+    }
+
+    // For normal length names, just use the first name
+    return firstName;
+  };
+
+  const displayName = getDisplayName();
 
   return (
     <div className="w-full">
@@ -77,7 +109,9 @@ export default function Header({ avatar, fullName }: HeaderPropType) {
         </Link>
 
         <div className="flex items-center justify-center gap-5">
-          <p className="text-sm">Hello, {username}</p>
+          <p className="text-sm" title={fullName}>
+            Hello, {displayName}
+          </p>
 
           <div className="flex items-center justify-center">
             <ProfileDropdownMenu>
@@ -85,7 +119,9 @@ export default function Header({ avatar, fullName }: HeaderPropType) {
                 <Avatar className="w-[30px] h-[30px]">
                   <AvatarImage src={avatar} alt="avatar" />
                   <AvatarFallback>
-                    {fullName.slice(0, 1).toUpperCase()}
+                    {fullName && fullName.trim() !== ""
+                      ? fullName.charAt(0).toUpperCase()
+                      : "U"}
                   </AvatarFallback>
                 </Avatar>
               </button>

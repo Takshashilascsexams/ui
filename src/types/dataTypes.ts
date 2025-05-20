@@ -4,7 +4,8 @@ export type OnboardingDataType = {
   dateOfBirth: Date;
   gender: string;
   category: string;
-  alternatePhoneNumber: string;
+  phoneNumber: string;
+  alternatePhoneNumber?: string;
   address: string;
   district: string;
   collegeOrUniversityName?: string;

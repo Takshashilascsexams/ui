@@ -1,7 +1,25 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import ProfileHeader from "@/components/profile/profile-header";
 import ProfileDetails from "@/components/profile/profile-details";
-// import { convertToRedeableDate } from "@/lib/convertToReadableDate";
+import getClerkToken from "@/actions/client/getClerkToken";
+import { auth } from "@clerk/nextjs/server";
+
+async function fetchProfileData() {
+  const token = await getClerkToken();
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    next: { revalidate: 300 }, // Cache for 5 minutes (300 seconds)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch profile data");
+  }
+
+  const data = await response.json();
+  return data.data;
+}
 
 export default async function ProfilePage() {
   const { userId } = await auth();
@@ -19,21 +37,8 @@ export default async function ProfilePage() {
     );
   }
 
-  const currentUser = await (
-    await clerkClient()
-  ).users.getUser(userId as string);
-
-  // Format user data for display
-  const userData = {
-    imageUrl: currentUser.imageUrl,
-    fullName: (currentUser.publicMetadata.fullName as string) || "User",
-    role: (currentUser.publicMetadata.role as string) || "Student",
-    email: currentUser.emailAddresses[0]?.emailAddress || "Not provided",
-    phoneNumber: currentUser.phoneNumbers[0]?.phoneNumber || "Not provided",
-    dateOfBirth:
-      (currentUser.publicMetadata.dateOfBirth as string) || "Not provided",
-    joined: currentUser.createdAt || Date.now(),
-  };
+  // Fetch user data from our API
+  const userData = await fetchProfileData();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

@@ -1,111 +1,98 @@
+import { NextResponse } from "next/server";
 import {
   clerkMiddleware,
   createRouteMatcher,
   clerkClient,
 } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher(["/sign-in", "/sign-up"]);
-const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
-const isPrivateRoute = createRouteMatcher(["/", "/profile"]);
-const isAdminRoute = createRouteMatcher(["/dashboard"]);
+// Define route matchers for different sections of the app
+const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+
+const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
+
+// Routes that require authentication
+const isAuthenticatedRoute = createRouteMatcher([
+  "/tests(.*)",
+  "/profile(.*)",
+  "/exam(.*)",
+  "/results(.*)",
+  "/rules(.*)",
+  "/thankyou(.*)",
+  "/",
+]);
+
+// Routes that require admin role
+const isAdminRoute = createRouteMatcher(["/dashboard(.*)"]);
 
 const BASE_URL = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims, redirectToSignIn } = await auth();
 
+  // Fetch current user if logged in
   const currentUser = userId
     ? await (await clerkClient()).users.getUser(userId)
     : null;
 
-  // If the user is signed in and accessing public route
-  // redirect to dashboard
+  // If the user is signed in and accessing public authentication routes
+  // redirect to homepage
   if (userId && isPublicRoute(req)) {
     return NextResponse.redirect(`${BASE_URL}`);
   }
 
-  // If the user isn't signed in and accessing private route,
-  // redirect to sign-in
-  if (!userId && (isPrivateRoute(req) || isOnboardingRoute(req))) {
-    return redirectToSignIn({ returnBackUrl: req.url });
+  // Handle onboarding route access
+  if (isOnboardingRoute(req)) {
+    // If user is not authenticated, redirect to sign-in
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url });
+    }
+
+    // If onboarding is already complete, redirect to homepage
+    if (sessionClaims?.metadata?.onboardingComplete === true) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    // Otherwise allow access to onboarding
+    return NextResponse.next();
   }
 
-  // For users visiting /onboarding, check bypass flag
-  if (userId && isOnboardingRoute(req)) {
-    // Check if onboarding is already complete
-    if (sessionClaims?.metadata?.onboardingComplete) {
-      return NextResponse.redirect(new URL("/", req.url));
+  // For authenticated routes, ensure user is logged in
+  if (isAuthenticatedRoute(req)) {
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url });
+    }
+
+    // If user hasn't completed onboarding, redirect there first
+    if (!sessionClaims?.metadata?.onboardingComplete) {
+      return NextResponse.redirect(new URL("/onboarding", req.url));
     }
 
     return NextResponse.next();
   }
 
-  // Restrict admin routes to users with specific permissions
-  if (isAdminRoute(req) && currentUser?.publicMetadata?.role !== "Admin") {
-    return NextResponse.redirect(`${BASE_URL}`);
+  // For admin routes, ensure user is logged in AND has admin role
+  if (isAdminRoute(req)) {
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url });
+    }
+
+    // Check if user has admin role
+    if (currentUser?.publicMetadata?.role !== "Admin") {
+      // If no admin access, redirect to homepage
+      return NextResponse.redirect(`${BASE_URL}`);
+    }
+
+    // If user hasn't completed onboarding, redirect there first
+    if (!sessionClaims?.metadata?.onboardingComplete) {
+      return NextResponse.redirect(new URL("/onboarding", req.url));
+    }
+
+    return NextResponse.next();
   }
 
-  // Check for bypass flag before redirecting to onboarding
-  if (userId && !sessionClaims?.metadata?.onboardingComplete) {
-    return NextResponse.redirect(new URL("/onboarding", req.url));
-  }
-
+  // Allow all other requests to proceed
   return NextResponse.next();
 });
-
-// This middleware includes logic to bypass onboarding during sign-up process
-// export default clerkMiddleware(async (auth, req) => {
-//   const { userId, sessionClaims, redirectToSignIn } = await auth();
-
-//   const currentUser = userId
-//     ? await (await clerkClient()).users.getUser(userId)
-//     : null;
-
-//   // If the user is signed in and accessing public route
-//   // redirect to dashboard
-//   if (userId && isPublicRoute(req)) {
-//     return NextResponse.redirect(`${BASE_URL}/dashboard`);
-//   }
-
-//   // If the user isn't signed in and accessing private route,
-//   // redirect to sign-in
-//   if (!userId && (isPrivateRoute(req) || isOnboardingRoute(req))) {
-//     return redirectToSignIn({ returnBackUrl: req.url });
-//   }
-
-//   // For users visiting /onboarding, check bypass flag
-//   if (userId && isOnboardingRoute(req)) {
-//     // Check if user should bypass onboarding
-//     if (currentUser?.unsafeMetadata?.bypassOnboarding) {
-//       return NextResponse.redirect(new URL("/dashboard", req.url));
-//     }
-
-//     // Check if onboarding is already complete
-//     if (sessionClaims?.metadata?.onboardingComplete) {
-//       return NextResponse.redirect(new URL("/dashboard", req.url));
-//     }
-
-//     return NextResponse.next();
-//   }
-
-//   // Restrict admin routes to users with specific permissions
-//   if (isAdminRoute(req) && currentUser?.publicMetadata?.role !== "Admin") {
-//     return NextResponse.redirect(`${BASE_URL}/dashboard`);
-//   }
-
-//   // Check for bypass flag before redirecting to onboarding
-//   if (userId && !sessionClaims?.metadata?.onboardingComplete) {
-//     // If bypassOnboarding is true, don't redirect to onboarding
-//     if (currentUser?.unsafeMetadata?.bypassOnboarding === true) {
-//       return NextResponse.next();
-//     }
-
-//     return NextResponse.redirect(new URL("/onboarding", req.url));
-//   }
-
-//   return NextResponse.next();
-// });
 
 export const config = {
   matcher: [
