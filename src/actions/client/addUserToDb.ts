@@ -17,13 +17,11 @@ export const addUserToDb = async (onboardingData: OnboardingDataType) => {
   const { id, imageUrl, emailAddresses } = currentUser;
 
   const userObject = {
-    ...onboardingData,
     clerkId: id,
     email: emailAddresses[0].emailAddress,
-    // phoneNumber: phoneNumbers[0].phoneNumber,
-    phoneNumber: 8133982411,
     role: userCount === 1 ? "Admin" : "Student",
     avatar: imageUrl,
+    ...onboardingData,
   };
 
   const Url = `${process.env.NEXT_PUBLIC_URL}/api/auth/add-user-to-db`;

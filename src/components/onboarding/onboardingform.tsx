@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { completeOnboarding } from "@/actions/client/completeOnboarding";
-import { addUserToDb } from "@/actions/client/addUserToDb";
+// import { completeOnboarding } from "@/actions/client/completeOnboarding";
+// import { addUserToDb } from "@/actions/client/addUserToDb";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { gender, category, districts, highestEducation } from "@/utils/arrays";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { completeUserRegistration } from "@/actions/client/completeUserRegistration";
 import {
   Form,
   FormControl,
@@ -31,13 +32,26 @@ import {
 const onboardingFormSchema = z.object({
   fullName: z
     .string()
-    .min(6, {
-      message: "Full name must be at least 6 characters.",
+    .min(3, {
+      message: "Full name must be at least 3 characters.",
     })
-    .max(100, { message: "Full name must have less than 100 characters" }),
-  careOf: z.string().min(6, {
-    message: "Father's or mother's name must be at least 6 characters.",
-  }),
+    .max(100, { message: "Full name must have less than 40 characters" }),
+  careOf: z
+    .string()
+    .min(3, {
+      message: "Father's or mother's name must be at least 3 characters.",
+    })
+    .max(100, {
+      message: "Father's or mother's name must have less than 40 characters",
+    }),
+  phoneNumber: z
+    .string()
+    .length(10, {
+      message: "Phone number must be exactly 10 digits.",
+    })
+    .regex(/^\d+$/, {
+      message: "Phone number must contain only numbers.",
+    }),
   dateOfBirth: z.date().refine(
     (dob) => {
       const today = new Date();
@@ -59,17 +73,13 @@ const onboardingFormSchema = z.object({
   ),
   gender: z.enum(gender as [string, ...string[]]),
   category: z.enum(category as [string, ...string[]]),
-  alternatePhoneNumber: z
+  alternatePhoneNumber: z.string(),
+  address: z
     .string()
-    .length(10, {
-      message: "Alternate phone number must be exactly 10 digits.",
+    .min(8, {
+      message: "Provide full address",
     })
-    .regex(/^\d+$/, {
-      message: "Alternate phone number must contain only numbers.",
-    }),
-  address: z.string().min(10, {
-    message: "Provide full address",
-  }),
+    .max(100, { message: "Address must have less than 100 characters" }),
   district: z.enum(districts as [string, ...string[]], {
     message: "Invalid district selection.",
   }),
@@ -99,6 +109,7 @@ export default function OnboardingForm() {
       dateOfBirth: undefined,
       gender: "",
       category: "",
+      phoneNumber: "",
       alternatePhoneNumber: "",
       address: "",
       district: "",
@@ -114,20 +125,25 @@ export default function OnboardingForm() {
       setIsSubmittingForm(true);
       setError("");
 
-      // Add user to DB first
-      await addUserToDb(values);
-      // Only complete onboarding if DB operation succeeds
-      await completeOnboarding(values);
+      // Use the combined function instead of separate calls
+      const result = await completeUserRegistration(values);
 
-      // Reload session data and redirect
-      await user?.reload();
-      form.reset();
-      router.push("/dashboard");
+      // If successful, reload session and redirect
+      if (result.success) {
+        await user?.reload();
+        form.reset();
+        router.push("/dashboard");
+      } else {
+        // Handle case where the function returns successfully but with an error flag
+        setError(result.message || "Registration could not be completed");
+      }
     } catch (error) {
+      // Handle exceptions thrown by the server action
       setError(
         (error as Error).message ||
-          "Could not complete the onboarding process at the moment."
+          "Could not complete the registration process at the moment."
       );
+      console.error("Onboarding error:", error);
     } finally {
       setIsSubmittingForm(false);
     }
@@ -140,6 +156,7 @@ export default function OnboardingForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full flex flex-col items-center justify-center gap-5"
         >
+          {/* Full name */}
           <FormField
             control={form.control}
             name="fullName"
@@ -160,6 +177,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Care of */}
           <FormField
             control={form.control}
             name="careOf"
@@ -181,6 +199,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* DOB */}
           <FormField
             control={form.control}
             name="dateOfBirth"
@@ -215,6 +234,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Gender */}
           <FormField
             control={form.control}
             name="gender"
@@ -247,6 +267,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Category */}
           <FormField
             control={form.control}
             name="category"
@@ -279,14 +300,34 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Phone number */}
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Phone number <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Provide a phone number"
+                    className="text-sm"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Alt phone number */}
           <FormField
             control={form.control}
             name="alternatePhoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>
-                  Alternate phone number <span className="text-red-500">*</span>
-                </FormLabel>
+                <FormLabel>Alternate phone number</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Provide an alternate phone number"
@@ -299,6 +340,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Address */}
           <FormField
             control={form.control}
             name="address"
@@ -319,6 +361,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* District */}
           <FormField
             control={form.control}
             name="district"
@@ -351,6 +394,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* College */}
           <FormField
             control={form.control}
             name="collegeOrUniversityName"
@@ -371,6 +415,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Highest education */}
           <FormField
             control={form.control}
             name="highestEducation"
@@ -404,6 +449,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Previous attempted */}
           <FormField
             control={form.control}
             name="previouslyAttempted"
@@ -437,6 +483,7 @@ export default function OnboardingForm() {
             )}
           />
 
+          {/* Currently employed */}
           <FormField
             control={form.control}
             name="currentlyEmployed"
