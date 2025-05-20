@@ -18,7 +18,7 @@ async function fetchProfileData() {
   }
 
   const data = await response.json();
-  return data.data;
+  return data.data.user;
 }
 
 export default async function ProfilePage() {
