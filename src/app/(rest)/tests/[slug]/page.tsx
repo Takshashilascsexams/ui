@@ -1,9 +1,16 @@
+import { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import { getBundleDetails } from "@/services/bundle.services";
 import BundleDetails from "@/components/tests/slug/bundle_details";
 import BundledExamsList from "@/components/tests/slug/bundled_exams_list";
 import { Toaster } from "@/components/ui/sonner";
+
+export const metadata: Metadata = {
+  title: "Bundle Exam - Takshashila School of Civil Services",
+  description:
+    "Browse and take exams to enhance your preparation. Access test series, screening tests, scholarship exams and more for civil services preparation.",
+};
 
 type PageProps = {
   params: Promise<{ slug: string }>;

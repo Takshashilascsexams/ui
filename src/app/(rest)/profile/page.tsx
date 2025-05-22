@@ -1,7 +1,14 @@
+import { Metadata } from "next";
 import ProfileHeader from "@/components/profile/profile-header";
 import ProfileDetails from "@/components/profile/profile-details";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { auth } from "@clerk/nextjs/server";
+
+export const metadata: Metadata = {
+  title: "My Profile - Takshashila School of Civil Services",
+  description:
+    "Manage your account settings, view exam history, track progress and update personal information for your civil services preparation journey.",
+};
 
 async function fetchProfileData() {
   const token = await getClerkToken();
