@@ -1,9 +1,16 @@
+import { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 import { Suspense } from "react";
 import { CATEGORIES } from "@/utils/constants";
 import { fetchCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import ExamCatalogueClient from "@/components/tests/test_catalogue";
 import LoadingSkeleton from "@/components/tests/loading_skeleton";
+
+export const metadata: Metadata = {
+  title: "Exam Catalogue - Takshashila School of Civil Services",
+  description:
+    "Browse and take exams to enhance your preparation. Access test series, screening tests, scholarship exams and more for civil services preparation.",
+};
 
 async function ExamCatalogue() {
   unstable_noStore();

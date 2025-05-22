@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 import { fetchTestSeries } from "@/actions/client/fetchTestSeries";
 import HomeLayoutEducational from "@/components/home/home_layout_educational";
@@ -6,6 +7,12 @@ import {
   currentAffairsSectionData,
 } from "@/utils/arrays";
 import { fetchPublishedResults } from "@/actions/client/fetchPublishedResults";
+
+export const metadata: Metadata = {
+  title: "Takshashila School of Civil Services - Exam Portal",
+  description:
+    "Prepare for your exams with our curated test series, blogs and current affairs updates",
+};
 
 const notificationText =
   "Results for Indian Polity Test Series are out! Check Now";
