@@ -25,7 +25,10 @@ export default function ExamCard({
   isProcessing = false,
 }: ExamCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+    <div
+      id={exam.id}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all"
+    >
       <div className="p-4 sm:p-5">
         <div className="h-[185px]">
           <div className="flex justify-between items-start mb-3">

@@ -28,7 +28,10 @@ export default function FeaturedTestCard({
   isProcessing = false,
 }: FeaturedExamProps) {
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 overflow-hidden transition-all hover:shadow-md">
+    <div
+      id={exam.id}
+      className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 overflow-hidden transition-all hover:shadow-md"
+    >
       <div className="p-4 sm:p-5">
         {/* Description */}
         <div className="h-[170px] lg:h-[160px]">

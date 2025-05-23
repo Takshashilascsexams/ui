@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
-import { fetchTestSeries } from "@/actions/client/fetchTestSeries";
+import { fetchLatestExams } from "@/actions/client/fetchLatestExams";
 import HomeLayoutEducational from "@/components/home/home_layout_educational";
 import {
   latestBlogsSectionData,
@@ -22,7 +22,7 @@ export default async function Home() {
 
   // Fetch data in parallel for better performance
   const [testSeries, publishedResults] = await Promise.all([
-    fetchTestSeries(),
+    fetchLatestExams(),
     fetchPublishedResults(),
   ]);
 
