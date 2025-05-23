@@ -30,17 +30,93 @@ export interface UserInterface extends mongoose.Document {
   updatedAt: Date;
 }
 
+// Helper function to clean, normalize spaces, and format text
+const cleanAndFormatText = (str: string): string => {
+  if (!str) return str;
+
+  // First remove special characters except letters, numbers, spaces, and some basic punctuation
+  const filteredStr = str.replace(/[^\w\s.,'-]/g, "");
+
+  // Then normalize all whitespace (replace multiple spaces with single space)
+  const normalizedStr = filteredStr.trim().replace(/\s+/g, " ");
+
+  // Words that should be lowercase in title case (unless they're the first word)
+  const lowerCaseWords = new Set([
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "or",
+    "for",
+    "nor",
+    "as",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "near",
+    "of",
+    "on",
+    "onto",
+    "to",
+    "with",
+    "is",
+    "are",
+    "was",
+    "were",
+  ]);
+
+  // Check if a word is likely an acronym (all uppercase)
+  const isAcronym = (word: string): boolean => {
+    return word.length > 1 && word === word.toUpperCase();
+  };
+
+  const words = normalizedStr.split(" ");
+
+  return words
+    .map((word, index) => {
+      // If it's an acronym, keep it as is
+      if (isAcronym(word)) {
+        return word;
+      }
+
+      // Handle hyphenated words
+      if (word.includes("-")) {
+        return word
+          .split("-")
+          .map(
+            (part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+          )
+          .join("-");
+      }
+
+      // First word or words that shouldn't be lowercase
+      if (index === 0 || !lowerCaseWords.has(word.toLowerCase())) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+
+      // Lowercase words like articles, prepositions, etc.
+      return word.toLowerCase();
+    })
+    .join(" ");
+};
+
 const UserSchema = new mongoose.Schema(
   {
     clerkId: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         "Please enter a valid email address",
@@ -50,6 +126,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
       validate: {
         validator: function (v: string) {
           return /^\d{10}$/.test(v);
@@ -59,6 +136,7 @@ const UserSchema = new mongoose.Schema(
     },
     alternatePhoneNumber: {
       type: String,
+      trim: true,
       validate: {
         validator: function (v: string) {
           return (
@@ -72,12 +150,16 @@ const UserSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: true,
+      trim: true,
+      set: cleanAndFormatText,
       minlength: [3, "Full name must be at least 3 characters long"],
       maxlength: [40, "Full name must have less than 40 characters"],
     },
     careOf: {
       type: String,
       required: true,
+      trim: true,
+      set: cleanAndFormatText,
       minlength: [
         3,
         "Father's or mother's name must be at least 3 characters.",
@@ -110,15 +192,23 @@ const UserSchema = new mongoose.Schema(
         message: "Date of birth cannot be less than 18 years.",
       },
     },
-    gender: { type: String, required: true, enum: gender },
+    gender: {
+      type: String,
+      required: true,
+      enum: gender,
+      trim: true,
+    },
     category: {
       type: String,
       required: true,
       enum: category,
+      trim: true,
     },
     address: {
       type: String,
       required: true,
+      trim: true,
+      set: cleanAndFormatText,
       minlength: [8, "Provide full address"],
       maxlength: [100, "Address must have less than 100 characters"],
     },
@@ -126,20 +216,40 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: districts,
+      trim: true,
     },
     highestEducation: {
       type: String,
       required: true,
       enum: highestEducation,
+      trim: true,
     },
-    collegeOrUniversityName: { type: String },
-    previouslyAttempted: { type: String, required: true, enum: ["Yes", "No"] },
-    currentlyEmployed: { type: String, required: true, enum: ["Yes", "No"] },
-    avatar: { type: String },
+    collegeOrUniversityName: {
+      type: String,
+      trim: true,
+      set: cleanAndFormatText,
+    },
+    previouslyAttempted: {
+      type: String,
+      required: true,
+      enum: ["Yes", "No"],
+      trim: true,
+    },
+    currentlyEmployed: {
+      type: String,
+      required: true,
+      enum: ["Yes", "No"],
+      trim: true,
+    },
+    avatar: {
+      type: String,
+      trim: true,
+    },
     role: {
       type: String,
       enum: roles,
       default: "Student",
+      trim: true,
     },
   },
   { timestamps: true }
