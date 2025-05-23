@@ -4,16 +4,17 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { unstable_noStore } from "next/cache";
 
-export type TestSeriesType = {
+export type FetchLatestExamsType = {
   _id: string;
   isActive: boolean;
   title: string;
   description: string;
   duration: number;
   totalMarks: number;
+  hasAttempted: boolean;
 };
 
-export async function fetchTestSeries(): Promise<TestSeriesType[]> {
+export async function fetchLatestExams(): Promise<FetchLatestExamsType[]> {
   unstable_noStore();
 
   try {
@@ -24,7 +25,7 @@ export async function fetchTestSeries(): Promise<TestSeriesType[]> {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/exam/test-series`,
+      `${process.env.NEXT_PUBLIC_API_URL}/exam/latest-exams`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

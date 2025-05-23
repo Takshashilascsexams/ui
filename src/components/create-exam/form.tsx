@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLevel, testCategory } from "@/utils/arrays";
 import getClerkToken from "@/actions/client/getClerkToken";
-import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
+import { revalidateTestSeries } from "@/actions/client/fetchLatestExams";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
 import { Checkbox } from "../ui/checkbox";
 import {

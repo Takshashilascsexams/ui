@@ -1,6 +1,6 @@
 import getClerkToken from "@/actions/client/getClerkToken";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
-import { revalidateTestSeries } from "@/actions/client/fetchTestSeries";
+import { revalidateTestSeries } from "@/actions/client/fetchLatestExams";
 
 /**
  * Service to interact with admin exam-related API endpoints

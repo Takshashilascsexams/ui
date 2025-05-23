@@ -1,10 +1,10 @@
 import React from "react";
-import Notification from "./notification";
+// import Notification from "./notification";
 import Hero from "./hero";
-import TestSeriesSection from "./test_series_section";
+import LatestExamsSection from "./latest-exams-section";
 import ContentSection from "./content_section";
 import ResultsSection from "./results_section";
-import { TestSeriesType } from "@/actions/client/fetchTestSeries";
+import { FetchLatestExamsType } from "@/actions/client/fetchLatestExams";
 import FeatureSection from "./feature_section";
 import CtaSection from "./cta_section";
 import { currentAffairsAndBlogsSectionDataType } from "@/types/dataTypes";
@@ -20,14 +20,14 @@ type ResultPublication = {
 
 type HomeLayoutEducationalProp = {
   notificationText: string;
-  testSeries: TestSeriesType[];
+  testSeries: FetchLatestExamsType[];
   latestBlogsData: currentAffairsAndBlogsSectionDataType[];
   currentAffairsData: currentAffairsAndBlogsSectionDataType[];
   publishedResults?: ResultPublication[]; // Make this optional
 };
 
 export default function HomeLayoutEducational({
-  notificationText,
+  // notificationText,
   testSeries,
   latestBlogsData,
   currentAffairsData,
@@ -36,8 +36,8 @@ export default function HomeLayoutEducational({
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Hero />
-      <Notification notificationText={notificationText} />
-      <TestSeriesSection testSeries={testSeries} />
+      {/* <Notification notificationText={notificationText} /> */}
+      <LatestExamsSection testSeries={testSeries} />
       {/* Add Results Section after TestSeriesSection */}
       {publishedResults && publishedResults.length > 0 && (
         <ResultsSection publications={publishedResults} />

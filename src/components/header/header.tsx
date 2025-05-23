@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
 import CustomImage from "../custom_image/custom_image";
-import { UserRound, Settings, LogOut } from "lucide-react";
+import { UserRound, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -41,10 +41,10 @@ function ProfileDropdownMenu({ children }: DropDownMenuPropType) {
             </Link>
           </DropdownMenuItem>
 
-          <DropdownMenuItem className="cursor-pointer">
+          {/* <DropdownMenuItem className="cursor-pointer">
             <Settings />
             Settings
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem

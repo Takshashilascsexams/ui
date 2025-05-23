@@ -1,18 +1,23 @@
 import Link from "next/link";
-import { TestSeriesType } from "@/actions/client/fetchTestSeries";
+import { FetchLatestExamsType } from "@/actions/client/fetchLatestExams";
 
-type TestSeriesSectionProps = {
-  testSeries: TestSeriesType[];
+type LatestExamsSectionProps = {
+  testSeries: FetchLatestExamsType[];
 };
 
-export default function TestSeriesSection({
+export default function LatestExamsSection({
   testSeries,
-}: TestSeriesSectionProps) {
+}: LatestExamsSectionProps) {
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours > 0 ? `${hours}h ` : ""}${mins > 0 ? `${mins}m` : ""}`;
   };
+
+  // Filter to only show active test series
+  const activeTestSeries = testSeries.filter(
+    (series) => series.isActive === true
+  );
 
   return (
     <section className="w-full py-12 md:py-16">
@@ -29,15 +34,15 @@ export default function TestSeriesSection({
           </Link>
         </div>
 
-        {testSeries.length === 0 ? (
+        {activeTestSeries.length === 0 ? (
           <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg text-center">
             <p className="text-gray-600">
-              No test series available at the moment
+              No active test series available at the moment
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {testSeries.map((series) => (
+            {activeTestSeries.map((series) => (
               <div
                 key={series._id}
                 className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:translate-y-[-8px] transition-all duration-300 border border-slate-200"
@@ -57,18 +62,28 @@ export default function TestSeriesSection({
                     <div className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
                       {series.totalMarks} Marks
                     </div>
+                    {series.hasAttempted && (
+                      <div className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                        Already Attempted
+                      </div>
+                    )}
                   </div>
 
-                  <Link
-                    href={`/test-series/${series._id}`}
-                    className={`w-full block text-center py-2 text-sm font-medium rounded-full transition-colors duration-300 ${
-                      series.isActive
-                        ? "bg-[#2E4057] text-white hover:bg-[#243244]"
-                        : "bg-gray-400 text-white cursor-not-allowed"
-                    }`}
-                  >
-                    {series.isActive ? "View Details" : "Not Available"}
-                  </Link>
+                  {series.hasAttempted ? (
+                    <button
+                      disabled
+                      className="w-full block text-center py-2 text-sm font-medium rounded-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                    >
+                      Already Attempted
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/tests/#${series._id}`}
+                      className="w-full block text-center py-2 text-sm font-medium rounded-full bg-[#2E4057] text-white hover:bg-[#243244] transition-colors duration-300"
+                    >
+                      Go to exam
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
