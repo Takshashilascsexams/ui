@@ -188,9 +188,12 @@ function ExamRulesContent() {
 
             <div className="flex flex-col space-y-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2">
-                <span className="font-medium">Pass Percentage</span>
+                <span className="font-medium">Pass Mark</span>
               </div>
-              <p className="text-gray-700">{rules.passMarkPercentage}%</p>
+              <p className="text-gray-700">
+                {Math.ceil((rules.passMarkPercentage / 100) * rules.totalMarks)}{" "}
+                marks
+              </p>
             </div>
           </div>
 
