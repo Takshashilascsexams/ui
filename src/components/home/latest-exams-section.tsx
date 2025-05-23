@@ -81,7 +81,7 @@ export default function LatestExamsSection({
                       href={`/tests/#${series._id}`}
                       className="w-full block text-center py-2 text-sm font-medium rounded-full bg-[#2E4057] text-white hover:bg-[#243244] transition-colors duration-300"
                     >
-                      Go to exam
+                      View details
                     </Link>
                   )}
                 </div>
