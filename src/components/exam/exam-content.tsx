@@ -637,6 +637,14 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     };
   }, [dispatch]);
 
+  // Smooth scroll to top when question changes
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [state.currentQuestionIndex]);
+
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
     if (!state.attemptId) return;
@@ -923,35 +931,59 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Pass Percentage:</span>
+                  <span className="text-gray-600">Pass Mark:</span>
                   <span className="font-medium">
-                    {state.examDetails.passMarkPercentage}%
+                    {Math.ceil(
+                      (state.examDetails.passMarkPercentage / 100) *
+                        state.examDetails.totalMarks
+                    )}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                {/* Submit button enabled only on last question */}
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
                   onClick={() => setShowSubmitDialog(true)}
-                  disabled={state.status !== "in-progress" || submitting}
+                  disabled={
+                    state.status !== "in-progress" ||
+                    submitting ||
+                    state.currentQuestionIndex !== state.questions.length - 1
+                  }
                 >
                   {submitting ? (
                     <>
-                      <LoadingSpinner className="mr-2" />
+                      <LoadingSpinner size="sm" className="mr-2" />
                       Submitting...
                     </>
                   ) : (
                     "Submit Exam"
                   )}
                 </Button>
-                {state.questions.some((q) => q.selectedOption === null) &&
-                  state.status === "in-progress" && (
-                    <p className="text-amber-600 text-xs mt-2">
-                      {`You have unanswered questions. You can still submit if
-                      you're done.`}
+
+                <div className="text-xs text-gray-500 space-y-1">
+                  {state.currentQuestionIndex !==
+                    state.questions.length - 1 && (
+                    <p className="text-amber-600 font-medium">
+                      • Submit button will be enabled when you reach the last
+                      question
                     </p>
                   )}
+                  {state.questions.some((q) => q.selectedOption === null) &&
+                    state.status === "in-progress" && (
+                      <p className="text-amber-600">
+                        • You have unanswered questions. You can still submit
+                        when ready.
+                      </p>
+                    )}
+                  {state.currentQuestionIndex ===
+                    state.questions.length - 1 && (
+                    <p className="text-green-600 font-medium">
+                      • You can now submit your exam
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -960,7 +992,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
 
       {/* Exit Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Exit Exam?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -986,7 +1018,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
 
       {/* Submit Dialog */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Submit Exam?</AlertDialogTitle>
             <AlertDialogDescription>

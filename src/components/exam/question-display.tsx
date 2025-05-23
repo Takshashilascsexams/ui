@@ -33,7 +33,7 @@ export default function QuestionDisplay({
   return (
     <div className="w-full bg-white border border-gray-200 rounded-lg p-6">
       <div className="mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="text-sm font-medium text-gray-500">
             {question.type === "MCQ"
               ? "Multiple Choice Question"
@@ -44,9 +44,12 @@ export default function QuestionDisplay({
           </div>
         </div>
 
-        <h2 className="mt-2 text-lg font-medium text-gray-900">
-          {question.questionText}
-        </h2>
+        {/* NEW CODE: Improved alignment for question text */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-medium text-gray-900 leading-relaxed">
+            {question.questionText}
+          </h2>
+        </div>
       </div>
 
       {/* Display statements for statement-based questions */}
@@ -55,15 +58,22 @@ export default function QuestionDisplay({
         question.statements.length > 0 && (
           <div className="mb-6 space-y-3">
             {question.statements.map((statement, index) => (
-              <div key={index} className="flex gap-2 bg-gray-50 p-3 rounded-md">
-                <div className="font-medium">{statement.statementNumber}.</div>
-                <div>{statement.statementText}</div>
+              <div key={index} className="flex gap-3 bg-gray-50 p-4 rounded-md">
+                {/* NEW CODE: Better alignment for statement numbers */}
+                <div className="font-medium text-gray-700 min-w-[24px]">
+                  {statement.statementNumber}.
+                </div>
+                <div className="flex-1 text-gray-800">
+                  {statement.statementText}
+                </div>
               </div>
             ))}
 
             {question.statementInstruction && (
-              <div className="mt-4 font-medium text-gray-700">
-                {question.statementInstruction}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="font-medium text-blue-800">
+                  {question.statementInstruction}
+                </div>
               </div>
             )}
           </div>
@@ -79,22 +89,23 @@ export default function QuestionDisplay({
         {question.options.map((option, index) => (
           <div
             key={option._id}
-            className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 p-3 rounded-md cursor-pointer"
+            className="flex items-start space-x-3 bg-gray-50 hover:bg-gray-100 p-4 rounded-md cursor-pointer transition-colors"
           >
             <RadioGroupItem
               value={option._id}
               id={option._id}
               disabled={disabled}
-              className="cursor-pointer"
+              className="cursor-pointer mt-0.5"
             />
             <Label
               htmlFor={option._id}
-              className="flex gap-2 cursor-pointer w-full"
+              className="flex gap-3 cursor-pointer w-full leading-relaxed"
             >
-              <span className="font-medium">
+              {/* NEW CODE: Better alignment for option letters */}
+              <span className="font-medium text-gray-700 min-w-[24px]">
                 {String.fromCharCode(65 + index)}.
               </span>
-              <span>{option.optionText}</span>
+              <span className="flex-1 text-gray-800">{option.optionText}</span>
             </Label>
           </div>
         ))}

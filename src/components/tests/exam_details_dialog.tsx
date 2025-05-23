@@ -63,7 +63,7 @@ export default function ExamDetailsDialog({
 
   //Calculate pass mark
   const calculatePassMark = (totalMarks: number, passPercentage: number) => {
-    return (passPercentage / 100) * totalMarks;
+    return Math.ceil((passPercentage / 100) * totalMarks);
   };
 
   // Handle start exam action
