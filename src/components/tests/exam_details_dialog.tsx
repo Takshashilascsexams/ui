@@ -43,13 +43,12 @@ export default function ExamDetailsDialog({
   isProcessing = false,
 }: ExamDetailsDialogProps) {
   if (!exam) return null;
-  console.log(exam.id);
 
   // Format duration in hours and minutes
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours > 0 ? `${hours}h ` : ""}${mins > 0 ? `${mins}m` : ""}`;
+    return `${hours > 0 ? `${hours}hrs ` : ""}${mins > 0 ? `${mins}mins` : ""}`;
   };
 
   // Format date in a readable way
@@ -60,6 +59,11 @@ export default function ExamDetailsDialog({
       month: "long",
       day: "numeric",
     });
+  };
+
+  //Calculate pass mark
+  const calculatePassMark = (totalMarks: number, passPercentage: number) => {
+    return (passPercentage / 100) * totalMarks;
   };
 
   // Handle start exam action
@@ -92,7 +96,7 @@ export default function ExamDetailsDialog({
               {exam.difficulty}
             </span>
           </div>
-          <DialogDescription className="text-base">
+          <DialogDescription className="text-base text-start">
             {exam.description}
           </DialogDescription>
         </DialogHeader>
@@ -117,7 +121,9 @@ export default function ExamDetailsDialog({
             <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
               <CheckCircle className="h-5 w-5 text-blue-500 mb-1" />
               <span className="text-xs text-gray-500">Pass Mark</span>
-              <span className="font-medium">{exam.passPercentage}%</span>
+              <span className="font-medium">
+                {calculatePassMark(exam.totalMarks, exam.passPercentage)}{" "}
+              </span>
             </div>
 
             <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -136,30 +142,34 @@ export default function ExamDetailsDialog({
                 <FileText className="h-4 w-4 text-blue-500" />
                 Exam Details
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Category:</span>
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                  <span className="text-gray-500 min-w-[80px]">Category:</span>
                   <span className="font-medium">
                     {exam.category.replace(/_/g, " ")}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Type:</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                  <span className="text-gray-500 min-w-[80px]">Type:</span>
                   <span className="font-medium">
                     {exam.isPremium ? "Premium" : "Free"}
                   </span>
                 </div>
                 {exam.isPremium && (
                   <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Access Period:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                      <span className="text-gray-500 min-w-[120px]">
+                        Access Period:
+                      </span>
                       <span className="font-medium">
                         {exam.accessPeriod || 30} days
                       </span>
                     </div>
                     {exam.participants && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Attempts:</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                        <span className="text-gray-500 min-w-[80px]">
+                          Attempts:
+                        </span>
                         <span className="font-medium">
                           {exam.participants}+ students
                         </span>
@@ -181,7 +191,9 @@ export default function ExamDetailsDialog({
                   Allocate {formatDuration(exam.duration)} to complete this test
                 </li>
                 <li>
-                  You need to score at least {exam.passPercentage}% to pass
+                  You need to score at least {exam.passPercentage}% or{" "}
+                  {calculatePassMark(exam.totalMarks, exam.passPercentage)}{" "}
+                  marks to pass
                 </li>
                 <li>Review the subject material before attempting the test</li>
               </ul>
