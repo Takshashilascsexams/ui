@@ -29,13 +29,89 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Helper function to clean text by removing special characters and normalizing spaces
+const cleanText = (value: string): string => {
+  if (!value) return value;
+  // Remove special characters except letters, numbers, spaces, and basic punctuation
+  const filteredStr = value.replace(/[^\w\s.,'-]/g, "");
+  // Normalize spaces (replace multiple spaces with a single space)
+  return filteredStr.trim().replace(/\s+/g, " ");
+};
+
+// Helper function to format text as title case
+const toTitleCase = (value: string): string => {
+  if (!value) return value;
+
+  const words = value.split(" ");
+  const lowerCaseWords = new Set([
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "or",
+    "for",
+    "nor",
+    "as",
+    "at",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "near",
+    "of",
+    "on",
+    "onto",
+    "to",
+    "with",
+    "is",
+    "are",
+    "was",
+    "were",
+  ]);
+
+  return words
+    .map((word, index) => {
+      // Keep acronyms as is
+      if (word.length > 1 && word === word.toUpperCase()) {
+        return word;
+      }
+
+      // Handle hyphenated words
+      if (word.includes("-")) {
+        return word
+          .split("-")
+          .map(
+            (part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+          )
+          .join("-");
+      }
+
+      // First word or words that shouldn't be lowercase
+      if (index === 0 || !lowerCaseWords.has(word.toLowerCase())) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+
+      // Lowercase words like articles, prepositions, etc.
+      return word.toLowerCase();
+    })
+    .join(" ");
+};
+
+// Transform function that both cleans and formats text
+const cleanAndFormat = (value: string): string => {
+  return toTitleCase(cleanText(value));
+};
+
 const onboardingFormSchema = z.object({
   fullName: z
     .string()
     .min(3, {
       message: "Full name must be at least 3 characters.",
     })
-    .max(100, { message: "Full name must have less than 40 characters" }),
+    .max(100, { message: "Full name must have less than 40 characters" })
+    .transform(cleanAndFormat),
   careOf: z
     .string()
     .min(3, {
@@ -43,7 +119,8 @@ const onboardingFormSchema = z.object({
     })
     .max(100, {
       message: "Father's or mother's name must have less than 40 characters",
-    }),
+    })
+    .transform(cleanAndFormat),
   phoneNumber: z
     .string()
     .length(10, {
@@ -73,20 +150,26 @@ const onboardingFormSchema = z.object({
   ),
   gender: z.enum(gender as [string, ...string[]]),
   category: z.enum(category as [string, ...string[]]),
-  alternatePhoneNumber: z.string(),
+  alternatePhoneNumber: z
+    .string()
+    .refine((val) => val === "" || (val.length === 10 && /^\d+$/.test(val)), {
+      message: "If provided, alternate phone number must be exactly 10 digits.",
+    })
+    .optional(),
   address: z
     .string()
     .min(8, {
       message: "Provide full address",
     })
-    .max(100, { message: "Address must have less than 100 characters" }),
+    .max(100, { message: "Address must have less than 100 characters" })
+    .transform(cleanAndFormat),
   district: z.enum(districts as [string, ...string[]], {
     message: "Invalid district selection.",
   }),
   highestEducation: z.enum(highestEducation as [string, ...string[]], {
     message: "Invalid education selection.",
   }),
-  collegeOrUniversityName: z.string(),
+  collegeOrUniversityName: z.string().transform(cleanAndFormat),
   previouslyAttempted: z.enum(["Yes", "No"], {
     message: "Invalid option selection.",
   }),
