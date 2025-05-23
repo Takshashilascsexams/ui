@@ -86,6 +86,48 @@ export default function QuestionNavigation({
 
   return (
     <div className="w-full bg-white border border-gray-200 rounded-lg p-4 space-y-6">
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          variant="outline"
+          onClick={onPrevious}
+          disabled={isFirstQuestion || disabled || !allowNavigation}
+          className="flex items-center gap-2"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Previous</span>
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={onNext}
+          disabled={isLastQuestion || disabled}
+          className="flex items-center gap-2"
+        >
+          <span className="hidden sm:inline">Next</span>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Navigation Instructions */}
+      <div className="text-xs text-gray-500 space-y-1 pt-2 border-t border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div>• Previous button disabled on first question</div>
+          <div>• Next button disabled on last question</div>
+        </div>
+        {allowNavigation && shouldUseScrollableLayout && (
+          <div className="text-blue-600 font-medium">
+            • Use search to jump to specific questions • Scroll to view all
+            questions
+          </div>
+        )}
+        {!allowNavigation && (
+          <div className="text-amber-600 font-medium">
+            • Question navigation is disabled for this exam
+          </div>
+        )}
+      </div>
+
       {/* Progress Section */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
@@ -103,23 +145,25 @@ export default function QuestionNavigation({
       </div>
 
       {/* NEW CODE: Instructions Section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-700">Instructions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-green-600 bg-green-50 rounded"></div>
-            <span className="text-gray-600">Attempted</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-blue-600 bg-blue-50 rounded"></div>
-            <span className="text-gray-600">Current</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-gray-300 bg-white rounded"></div>
-            <span className="text-gray-600">Unattempted</span>
+      {allowNavigation && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-gray-700">Instructions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-green-600 bg-green-50 rounded"></div>
+              <span className="text-gray-600">Attempted</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-600 bg-blue-50 rounded"></div>
+              <span className="text-gray-600">Current</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 bg-white rounded"></div>
+              <span className="text-gray-600">Unattempted</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* NEW CODE: Search and Filter Controls */}
       {allowNavigation && (
@@ -233,48 +277,6 @@ export default function QuestionNavigation({
         <div className="text-lg font-semibold text-gray-800">
           Question {currentIndex + 1} of {totalQuestions}
         </div>
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-        <Button
-          variant="outline"
-          onClick={onPrevious}
-          disabled={isFirstQuestion || disabled || !allowNavigation}
-          className="flex items-center gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Previous</span>
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={onNext}
-          disabled={isLastQuestion || disabled}
-          className="flex items-center gap-2"
-        >
-          <span className="hidden sm:inline">Next</span>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Navigation Instructions */}
-      <div className="text-xs text-gray-500 space-y-1 pt-2 border-t border-gray-100">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-          <div>• Previous button disabled on first question</div>
-          <div>• Next button disabled on last question</div>
-        </div>
-        {shouldUseScrollableLayout && (
-          <div className="text-blue-600 font-medium">
-            • Use search to jump to specific questions • Scroll to view all
-            questions
-          </div>
-        )}
-        {!allowNavigation && (
-          <div className="text-amber-600 font-medium">
-            • Question navigation is disabled for this exam
-          </div>
-        )}
       </div>
     </div>
   );
