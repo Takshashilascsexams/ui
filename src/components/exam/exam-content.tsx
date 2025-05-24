@@ -13,6 +13,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExamDetails, Question, useExam } from "@/context/exam.context";
 import {
+  useExamSecurity,
+  type SecurityViolation,
+} from "@/hooks/useExamSecurity";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,7 +47,6 @@ interface QuestionStatement {
   isCorrect?: boolean;
 }
 
-// The actual exam content, which uses the exam context
 export default function ExamContent({ attemptId }: { attemptId: string }) {
   const router = useRouter();
   const { state, dispatch } = useExam();
@@ -53,6 +56,46 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isTimerSyncing, setIsTimerSyncing] = useState(false);
   const [serverTime, setServerTime] = useState<number | null>(null);
+
+  //security states
+  const [securityViolations, setSecurityViolations] = useState<
+    SecurityViolation[]
+  >([]);
+  const [showSecurityDialog, setShowSecurityDialog] = useState(false);
+
+  const {
+    isMobile,
+    isFullscreen,
+    violationCount,
+    enterFullscreen,
+    exitFullscreen,
+    maxViolations,
+  } = useExamSecurity({
+    isExamActive: state.status === "in-progress",
+    maxViolations: 5,
+    onSecurityViolation: (violation) => {
+      // Log violation locally
+      setSecurityViolations((prev) => [...prev, violation]);
+
+      // Send to backend (optional)
+      // if (state.attemptId) {
+      //   examService
+      //     .logSecurityViolation?.(state.attemptId, violation)
+      //     .catch(console.error);
+      // }
+
+      // Show warning dialog on 2nd violation
+      if (violationCount >= 1) {
+        setShowSecurityDialog(true);
+      }
+    },
+    onMaxViolationsReached: () => {
+      toast.error(
+        "Multiple security violations detected. Exam will be submitted."
+      );
+      setTimeout(() => handleSubmitExam(), 2000);
+    },
+  });
 
   // Refs for optimization
   const pendingAnswersRef = useRef<Map<string, PendingAnswer>>(new Map());
@@ -645,6 +688,16 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     });
   }, [state.currentQuestionIndex]);
 
+  // AUTO-ENTER FULLSCREEN
+  useEffect(() => {
+    if (state.status === "in-progress" && !isMobile) {
+      enterFullscreen();
+    }
+    return () => {
+      exitFullscreen();
+    };
+  }, [state.status, isMobile, enterFullscreen, exitFullscreen]);
+
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
     if (!state.attemptId) return;
@@ -828,6 +881,23 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
     };
   }, [state.attemptId, state.status, syncTimeRemaining]);
 
+  // Enter full screen button
+  const FullscreenReentryButton = () => {
+    if (isMobile || isFullscreen) return null;
+
+    return (
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={enterFullscreen}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 flex items-center space-x-2"
+        >
+          <span>🖥️</span>
+          <span className="text-sm font-medium">Enter Fullscreen</span>
+        </button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -856,7 +926,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const currentQuestion = state.questions[state.currentQuestionIndex];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 exam-secure">
       <ExamHeader
         examDetails={state.examDetails}
         onExit={() => setShowExitDialog(true)}
@@ -864,10 +934,14 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
         submitting={submitting}
       />
 
+      {/* Enter full screen button */}
+      <FullscreenReentryButton />
+
       <div className="flex-1 container mx-auto py-6 px-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {currentQuestion && (
+              // Question display
               <QuestionDisplay
                 question={currentQuestion}
                 onAnswerChange={saveAnswer}
@@ -875,6 +949,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
               />
             )}
 
+            {/* Questions navigation */}
             <QuestionNavigation
               questions={state.questions}
               currentIndex={state.currentQuestionIndex}
@@ -886,6 +961,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
             />
           </div>
 
+          {/* Exam timer */}
           <div className="space-y-6">
             {currentQuestion && (
               <ExamTimer
@@ -897,6 +973,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
               />
             )}
 
+            {/* Exam summary section */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-sm font-medium text-gray-700 mb-2">
                 Exam Summary
@@ -985,6 +1062,34 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
                   )}
                 </div>
               </div>
+
+              {/* 🎯 ADD THE SECURITY STATUS HERE */}
+              <div className="flex justify-between">
+                <span className="text-gray-600">Security:</span>
+                <span
+                  className={`font-medium ${
+                    violationCount === 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {violationCount === 0
+                    ? "✓ Secure"
+                    : `⚠ ${violationCount}/${maxViolations}`}
+                </span>
+              </div>
+
+              {/* 🎯 ADD THE FULLSCREEN STATUS HERE */}
+              {!isMobile && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Fullscreen:</span>
+                  <span
+                    className={`font-medium ${
+                      isFullscreen ? "text-green-600" : "text-amber-600"
+                    }`}
+                  >
+                    {isFullscreen ? "✓ Active" : "○ Inactive"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1052,6 +1157,49 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
               ) : (
                 "Submit Exam"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Security alert dialog */}
+      <AlertDialog
+        open={showSecurityDialog}
+        onOpenChange={setShowSecurityDialog}
+      >
+        <AlertDialogContent className="w-[95vw] max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600">
+              ⚠️ Security Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-600">
+                  Security violations detected during your exam:
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                  <ul className="text-sm space-y-1">
+                    {securityViolations.slice(-3).map((violation, index) => (
+                      <li key={index} className="text-amber-800">
+                        • {violation.type.replace("_", " ")} at{" "}
+                        {new Date(violation.timestamp).toLocaleTimeString()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="text-sm text-red-700 bg-red-50 p-2 rounded">
+                  <strong>Warning:</strong> {maxViolations - violationCount}{" "}
+                  more violations will result in automatic exam submission.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setShowSecurityDialog(false)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              I Understand - Continue Exam
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
