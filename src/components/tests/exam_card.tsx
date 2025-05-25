@@ -3,7 +3,16 @@ import { ExamType } from "@/types/examTypes";
 import { getDifficultyColor } from "@/utils/tests.utils";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Clock, Award, BarChart3, Lock, CreditCard, Play } from "lucide-react";
+import {
+  Clock,
+  Award,
+  BarChart3,
+  Lock,
+  CreditCard,
+  Play,
+  Ban,
+  AlertTriangle,
+} from "lucide-react";
 
 interface ExamCardProps {
   exam: ExamType;
@@ -24,13 +33,51 @@ export default function ExamCard({
   onPurchaseExam = () => {},
   isProcessing = false,
 }: ExamCardProps) {
+  // ✅ NEW: Determine if user can start the exam based on both payment and attempt access
+  const canStartExam = hasAccess && (exam.hasAttemptAccess ?? true);
+
+  // ✅ NEW: Get attempt information display text
+  const getAttemptInfo = () => {
+    const attemptCount = exam.attemptCount || 0;
+    const maxAttempt = exam.maxAttempt || 1;
+    const allowMultiple = exam.allowMultipleAttempts || false;
+
+    if (attemptCount === 0) {
+      return allowMultiple ? `0/${maxAttempt} attempts used` : "Not attempted";
+    }
+
+    if (allowMultiple) {
+      return `${attemptCount}/${maxAttempt} attempts used`;
+    }
+
+    return "1/1 attempt used";
+  };
+
+  // ✅ NEW: Get the reason why exam can't be accessed
+  const getAccessBlockReason = () => {
+    if (!hasAccess && exam.isPremium) {
+      return "Premium access required";
+    }
+
+    if (hasAccess && !(exam.hasAttemptAccess ?? true)) {
+      const allowMultiple = exam.allowMultipleAttempts || false;
+      if (!allowMultiple) {
+        return "You have already attempted this exam";
+      } else {
+        return `All ${exam.maxAttempt || 1} attempts have been used`;
+      }
+    }
+
+    return null;
+  };
+
   return (
     <div
       id={exam.id}
       className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all"
     >
       <div className="p-4 sm:p-5">
-        <div className="h-[185px]">
+        <div className="h-[210px]">
           <div className="flex justify-between items-start mb-3">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-gray-900 line-clamp-1">
@@ -83,6 +130,11 @@ export default function ExamCard({
                 {Math.ceil((exam.passPercentage / 100) * exam.totalMarks)}
               </span>
             </div>
+            {/* ✅ NEW: Show attempt information */}
+            <div className="flex items-center justify-end px-2">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              <span className="text-xs">{getAttemptInfo()}</span>
+            </div>
           </div>
 
           {exam.isPremium && !hasAccess && (
@@ -114,6 +166,18 @@ export default function ExamCard({
               </p>
             </div>
           )}
+
+          {/* ✅ NEW: Show attempt access status */}
+          {hasAccess && !(exam.hasAttemptAccess ?? true) && (
+            <div className="mb-4 p-2 bg-red-50 rounded-md text-xs">
+              <div className="flex items-center">
+                <Ban className="h-3 w-3 mr-1 text-red-600" />
+                <p className="text-red-700 font-medium">
+                  {getAccessBlockReason()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -127,6 +191,7 @@ export default function ExamCard({
             </Button>
           )}
 
+          {/* ✅ UPDATED: Enhanced button logic with attempt access control */}
           {exam.isPremium && !hasAccess ? (
             <Button
               onClick={() => onPurchaseExam(exam.id)}
@@ -135,6 +200,17 @@ export default function ExamCard({
             >
               <CreditCard className="h-4 w-4 mr-1" />
               Purchase
+            </Button>
+          ) : !canStartExam ? (
+            <Button
+              disabled={true}
+              className="flex-1 py-2 px-4 bg-gray-400 cursor-not-allowed rounded-full text-sm font-medium transition-colors flex items-center justify-center"
+              title={getAccessBlockReason() || "Cannot start exam"}
+            >
+              <Ban className="h-4 w-4 mr-1" />
+              {!(exam.hasAttemptAccess ?? true)
+                ? "No Attempts Left"
+                : "Unavailable"}
             </Button>
           ) : (
             <Button

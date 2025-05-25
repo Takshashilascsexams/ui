@@ -25,6 +25,8 @@ import {
   TimerIcon,
   FileText,
   AlertTriangle,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
 
 interface ExamDetailsDialogProps {
@@ -43,6 +45,25 @@ export default function ExamDetailsDialog({
   isProcessing = false,
 }: ExamDetailsDialogProps) {
   if (!exam) return null;
+
+  // ✅ NEW: Determine if user can start the exam
+  const canStartExam = exam.hasAccess && (exam.hasAttemptAccess ?? true);
+
+  // ✅ NEW: Get attempt information
+  const getAttemptInfo = () => {
+    const attemptCount = exam.attemptCount || 0;
+    const maxAttempt = exam.maxAttempt || 1;
+    const allowMultiple = exam.allowMultipleAttempts || false;
+
+    return {
+      attemptCount,
+      maxAttempt,
+      allowMultiple,
+      hasAttemptsLeft: exam.hasAttemptAccess ?? true,
+    };
+  };
+
+  const attemptInfo = getAttemptInfo();
 
   // Format duration in hours and minutes
   const formatDuration = (minutes: number) => {
@@ -135,6 +156,60 @@ export default function ExamDetailsDialog({
             </div>
           </div>
 
+          {/* ✅ NEW: Attempt Information Section */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 mb-6">
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-blue-700">
+              <RotateCcw className="h-4 w-4" />
+              Attempt Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex flex-col">
+                <span className="text-blue-600 font-medium">
+                  Attempts Used:
+                </span>
+                <span className="text-blue-700">
+                  {attemptInfo.attemptCount} / {attemptInfo.maxAttempt}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-blue-600 font-medium">Attempt Type:</span>
+                <span className="text-blue-700">
+                  {attemptInfo.allowMultiple
+                    ? "Multiple attempts allowed"
+                    : "Single attempt only"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-blue-600 font-medium">Status:</span>
+                <span
+                  className={`font-medium ${
+                    attemptInfo.hasAttemptsLeft
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {attemptInfo.hasAttemptsLeft
+                    ? "Can attempt"
+                    : "No attempts left"}
+                </span>
+              </div>
+            </div>
+
+            {/* Attempt status message */}
+            {!attemptInfo.hasAttemptsLeft && (
+              <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
+                <div className="flex items-center text-red-700">
+                  <Ban className="h-4 w-4 mr-2" />
+                  <span className="text-sm font-medium">
+                    {attemptInfo.allowMultiple
+                      ? `All ${attemptInfo.maxAttempt} attempts have been used`
+                      : "You have already attempted this exam"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Additional Information */}
           <div className="space-y-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -195,6 +270,12 @@ export default function ExamDetailsDialog({
                   {calculatePassMark(exam.totalMarks, exam.passPercentage)}{" "}
                   marks to pass
                 </li>
+                {attemptInfo.allowMultiple && attemptInfo.hasAttemptsLeft && (
+                  <li>
+                    You have {attemptInfo.maxAttempt - attemptInfo.attemptCount}{" "}
+                    attempt(s) remaining
+                  </li>
+                )}
                 <li>Review the subject material before attempting the test</li>
               </ul>
             </div>
@@ -265,6 +346,7 @@ export default function ExamDetailsDialog({
             Close
           </Button>
 
+          {/* ✅ UPDATED: Enhanced button logic with attempt access control */}
           {exam.isPremium && !exam.hasAccess ? (
             <Button
               onClick={handlePurchaseExam}
@@ -275,6 +357,19 @@ export default function ExamDetailsDialog({
               Purchase (
               {exam.discountPrice ? `₹${exam.discountPrice}` : `₹${exam.price}`}
               )
+            </Button>
+          ) : !canStartExam ? (
+            <Button
+              disabled={true}
+              className="bg-gray-400 cursor-not-allowed rounded-full"
+              title={
+                attemptInfo.hasAttemptsLeft
+                  ? "Cannot start exam"
+                  : "No attempts remaining"
+              }
+            >
+              <Ban className="h-4 w-4 mr-1" />
+              {attemptInfo.hasAttemptsLeft ? "Unavailable" : "No Attempts Left"}
             </Button>
           ) : (
             <Button

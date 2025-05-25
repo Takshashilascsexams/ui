@@ -60,6 +60,10 @@ export const getBundleDetails = async (
       hasAccess: bundleData.hasAccess,
       isBundle: true,
       bundleTag: bundleData.bundleTag,
+      hasAttemptAccess: bundleData.hasAttemptAccess ?? true,
+      attemptCount: bundleData.attemptCount ?? 0,
+      allowMultipleAttempts: bundleData.allowMultipleAttempts ?? false,
+      maxAttempt: bundleData.maxAttempt ?? 1,
       // Transform bundled exams
       bundledExams: bundleData.bundledExams.map((exam) => ({
         id: exam._id,
@@ -81,6 +85,10 @@ export const getBundleDetails = async (
         accessPeriod: exam.accessPeriod,
         participants: exam.participants,
         bundledExams: exam.bundledExams || [],
+        hasAttemptAccess: exam.hasAttemptAccess ?? true,
+        attemptCount: exam.attemptCount ?? 0,
+        allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+        maxAttempt: exam.maxAttempt ?? 1,
       })),
     };
   } catch (error) {

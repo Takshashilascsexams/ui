@@ -8,6 +8,11 @@ export interface BundledExam {
   _id: string;
   title: string;
   hasAccess: boolean;
+  // ✅ NEW: Added attempt-related fields
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
 }
 
 export interface BundleDetailsBundledExam {
@@ -27,6 +32,11 @@ export interface BundleDetailsBundledExam {
   discountPrice?: number;
   accessPeriod?: number;
   hasAccess: boolean;
+  // ✅ NEW: Added attempt-related fields
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt: number;
 }
 
 // Bundle specific type
@@ -56,6 +66,11 @@ export type ExamType = {
   participants?: number;
   hasAccess: boolean;
   bundledExams?: BundledExam[];
+  // ✅ NEW: Added attempt-related fields
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
 };
 
 export type BundleExamType = {
@@ -77,6 +92,11 @@ export type BundleExamType = {
   title: string;
   totalMarks: number;
   _id: string;
+  // ✅ NEW: Added attempt-related fields
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
 };
 
 // API response type for fetch categorized exams
@@ -99,6 +119,11 @@ export type ApiResponseExamType = {
   accessPeriod: number;
   hasAccess: boolean;
   bundledExams?: BundleExamType[];
+  // ✅ NEW: Added attempt-related fields from API response
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
 };
 
 // API response type for fetch bundle details
@@ -121,6 +146,11 @@ export type ApiBundleResponseType = {
   isBundle: boolean;
   bundleTag: string;
   hasAccess: boolean;
+  // ✅ NEW: Added attempt-related fields
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
   bundledExams: {
     _id: string;
     title: string;
@@ -138,6 +168,11 @@ export type ApiBundleResponseType = {
     accessPeriod?: number;
     participants?: number;
     bundledExams?: BundleDetailsBundledExam[];
+    // ✅ NEW: Added attempt-related fields for bundled exams
+    hasAttemptAccess: boolean;
+    attemptCount: number;
+    allowMultipleAttempts?: boolean;
+    maxAttempt?: number;
   }[];
 };
 
