@@ -74,11 +74,14 @@ export default function ExamCard({
             </div>
             <div className="flex items-center justify-end px-2">
               <Award className="h-3 w-3 mr-1" />
-              <span>{exam.totalMarks} marks</span>
+              <span>Total marks: {exam.totalMarks}</span>
             </div>
             <div className="flex items-center">
               <BarChart3 className="h-3 w-3 mr-1" />
-              <span>Pass: {exam.passPercentage}%</span>
+              <span>
+                Pass marks:{" "}
+                {Math.ceil((exam.passPercentage / 100) * exam.totalMarks)}
+              </span>
             </div>
           </div>
 

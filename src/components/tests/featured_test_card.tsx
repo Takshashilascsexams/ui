@@ -59,7 +59,7 @@ export default function FeaturedTestCard({
             </div>
             <div className="flex items-center mr-3 mb-2 sm:mb-0">
               <Award className="h-3 w-3 mr-1" />
-              <span>{exam.totalMarks} marks</span>
+              <span>Total marks: {exam.totalMarks}</span>
             </div>
             {exam.participants && (
               <div className="flex items-center mb-2 sm:mb-0">
