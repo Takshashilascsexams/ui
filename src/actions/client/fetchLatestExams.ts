@@ -12,6 +12,10 @@ export type FetchLatestExamsType = {
   duration: number;
   totalMarks: number;
   hasAttempted: boolean;
+  hasAttemptAccess: boolean;
+  attemptCount: number;
+  allowMultipleAttempts?: boolean;
+  maxAttempt?: number;
 };
 
 export async function fetchLatestExams(): Promise<FetchLatestExamsType[]> {

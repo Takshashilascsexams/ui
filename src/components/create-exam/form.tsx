@@ -94,6 +94,16 @@ const addNewTestFormSchema = z
     allowNavigation: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
+    allowMultipleAttempts: z.boolean(),
+    maxAttempt: z.string().refine(
+      (val) => {
+        const maxAttempts = parseInt(val);
+        return !isNaN(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 2;
+      },
+      {
+        message: "Maximum attempts must be between 1 and 2.",
+      }
+    ),
     isFeatured: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
@@ -191,6 +201,34 @@ const addNewTestFormSchema = z
       message: "Please select a valid bundle tag.",
       path: ["bundleTag"],
     }
+  )
+  .refine(
+    (data) => {
+      if (!data.allowMultipleAttempts) {
+        const maxAttempts = parseInt(data.maxAttempt);
+        return maxAttempts === 1;
+      }
+      return true;
+    },
+    {
+      message:
+        "When multiple attempts are not allowed, maximum attempts should be 1.",
+      path: ["maxAttempt"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.allowMultipleAttempts) {
+        const maxAttempts = parseInt(data.maxAttempt);
+        return maxAttempts > 1;
+      }
+      return true;
+    },
+    {
+      message:
+        "When multiple attempts are allowed, maximum attempts should be greater than 1.",
+      path: ["maxAttempt"],
+    }
   );
 
 export default function CreateExamForm() {
@@ -210,6 +248,8 @@ export default function CreateExamForm() {
       difficultyLevel: difficultyLevel[1],
       category: testCategory[0],
       allowNavigation: "No",
+      allowMultipleAttempts: false,
+      maxAttempt: "1",
       isFeatured: "No",
       isPremium: "No",
       price: "100",
@@ -223,6 +263,7 @@ export default function CreateExamForm() {
   // Watch the isPremium field to conditionally show/hide price fields
   const isPremium = form.watch("isPremium");
   const isPartOfBundle = form.watch("isPartOfBundle");
+  const allowMultipleAttempts = form.watch("allowMultipleAttempts");
 
   const onSubmit = async (values: z.infer<typeof addNewTestFormSchema>) => {
     try {
@@ -238,6 +279,11 @@ export default function CreateExamForm() {
       // If not part of a bundle, clear bundle tag
       if (!values.isPartOfBundle) {
         values.bundleTag = "";
+      }
+
+      // Auto-adjust maxAttempt based on allowMultipleAttempts
+      if (!values.allowMultipleAttempts) {
+        values.maxAttempt = "1";
       }
 
       const clerkToken = await getClerkToken();
@@ -585,6 +631,68 @@ export default function CreateExamForm() {
               </FormItem>
             )}
           />
+
+          {/* ✅ NEW: Allow Multiple Attempts */}
+          <FormField
+            control={form.control}
+            name="allowMultipleAttempts"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      id="allowMultipleAttempts"
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        // ✅ NEW: Auto-adjust maxAttempt when allowMultipleAttempts changes
+                        if (!checked) {
+                          form.setValue("maxAttempt", "1");
+                        } else {
+                          form.setValue("maxAttempt", "2");
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormLabel htmlFor="allowMultipleAttempts">
+                    Allow multiple attempts
+                  </FormLabel>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* ✅ NEW: Max Attempt - Only show when allowMultipleAttempts is true */}
+          {allowMultipleAttempts && (
+            <FormField
+              control={form.control}
+              name="maxAttempt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Maximum attempts allowed
+                    <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="2"
+                      max="2"
+                      placeholder="Enter maximum attempts (2)"
+                      className="text-sm"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Students can attempt this exam up to {field.value || "X"}{" "}
+                    times
+                  </p>
+                </FormItem>
+              )}
+            />
+          )}
 
           {/* Featured */}
           <FormField

@@ -43,6 +43,10 @@ async function ExamCatalogue() {
     discountPrice: exam.discountPrice,
     accessPeriod: exam.accessPeriod,
     hasAccess: exam.hasAccess ?? false,
+    hasAttemptAccess: exam.hasAttemptAccess ?? true,
+    attemptCount: exam.attemptCount ?? 0,
+    allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+    maxAttempt: exam.maxAttempt ?? 1,
   }));
 
   const transformedFeatured = featured.map((exam) => ({
@@ -61,6 +65,10 @@ async function ExamCatalogue() {
     discountPrice: exam.discountPrice,
     accessPeriod: exam.accessPeriod,
     hasAccess: exam.hasAccess ?? false,
+    hasAttemptAccess: exam.hasAttemptAccess ?? true,
+    attemptCount: exam.attemptCount ?? 0,
+    allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+    maxAttempt: exam.maxAttempt ?? 1,
   }));
 
   const transformedBundle = bundled.map((exam) => ({
@@ -80,6 +88,10 @@ async function ExamCatalogue() {
     accessPeriod: exam.accessPeriod,
     hasAccess: exam.hasAccess ?? false,
     date: exam.createdAt,
+    hasAttemptAccess: exam.hasAttemptAccess ?? true,
+    attemptCount: exam.attemptCount ?? 0,
+    allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+    maxAttempt: exam.maxAttempt ?? 1,
   }));
 
   return (

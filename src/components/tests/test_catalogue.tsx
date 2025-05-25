@@ -136,7 +136,7 @@ export default function ExamCatalogueClient({
     }
   };
 
-  // Modify the handleStartExam function to use the hasAccess property
+  // ✅ UPDATED: Enhanced handleStartExam with attempt access control
   const handleStartExam = (examId: string) => {
     const exam = [...exams, ...featuredExams].find((e) => e.id === examId);
 
@@ -145,14 +145,38 @@ export default function ExamCatalogueClient({
       return;
     }
 
+    // Check payment access first
     if (exam.isPremium && !exam.hasAccess) {
       // User needs to purchase the exam
       setSelectedExam(exam);
       setIsPurchaseModalOpen(true);
-    } else {
-      // User has access (either free exam or premium with access)
-      navigateToExamRules(examId);
+      return;
     }
+
+    // ✅ NEW: Check attempt access
+    if (!(exam.hasAttemptAccess ?? true)) {
+      const allowMultiple = exam.allowMultipleAttempts || false;
+      const maxAttempt = exam.maxAttempt || 1;
+      const attemptCount = exam.attemptCount || 0;
+
+      if (!allowMultiple) {
+        toast.error("You have already attempted this exam", {
+          description: "This exam allows only one attempt per user.",
+        });
+      } else {
+        toast.error(
+          `All attempts have been used (${attemptCount}/${maxAttempt})`,
+          {
+            description:
+              "You have reached the maximum number of attempts for this exam.",
+          }
+        );
+      }
+      return;
+    }
+
+    // User has both payment and attempt access
+    navigateToExamRules(examId);
   };
 
   // Add a handle purchase function
@@ -170,7 +194,7 @@ export default function ExamCatalogueClient({
     setIsPurchaseModalOpen(true);
   };
 
-  // Update exam access status after payment success
+  // ✅ UPDATED: Enhanced payment success handler to include attempt data
   const handlePaymentSuccess = async () => {
     try {
       // Invalidate the cache first
@@ -204,6 +228,11 @@ export default function ExamCatalogueClient({
               discountPrice: exam.discountPrice,
               accessPeriod: exam.accessPeriod,
               hasAccess: exam.hasAccess ?? false,
+              // ✅ NEW: Include attempt-related fields
+              hasAttemptAccess: exam.hasAttemptAccess ?? true,
+              attemptCount: exam.attemptCount ?? 0,
+              allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+              maxAttempt: exam.maxAttempt ?? 1,
             }))
           )
           .filter((exam) => !exam.isPartOfBundle);
@@ -227,9 +256,14 @@ export default function ExamCatalogueClient({
           discountPrice: exam.discountPrice,
           accessPeriod: exam.accessPeriod,
           hasAccess: exam.hasAccess ?? false,
+          // ✅ NEW: Include attempt-related fields
+          hasAttemptAccess: exam.hasAttemptAccess ?? true,
+          attemptCount: exam.attemptCount ?? 0,
+          allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+          maxAttempt: exam.maxAttempt ?? 1,
         }));
 
-        // Extract featured exams
+        // Extract bundled exams
         const bundled = (freshData.data.categorizedExams["BUNDLE"] || []).map(
           (exam) => ({
             id: exam._id,
@@ -249,6 +283,11 @@ export default function ExamCatalogueClient({
             discountPrice: exam.discountPrice,
             accessPeriod: exam.accessPeriod,
             hasAccess: exam.hasAccess ?? false,
+            // ✅ NEW: Include attempt-related fields
+            hasAttemptAccess: exam.hasAttemptAccess ?? true,
+            attemptCount: exam.attemptCount ?? 0,
+            allowMultipleAttempts: exam.allowMultipleAttempts ?? false,
+            maxAttempt: exam.maxAttempt ?? 1,
           })
         );
 
