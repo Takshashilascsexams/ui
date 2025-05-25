@@ -205,3 +205,8 @@ export const sampleQuestions = [
 ];
 
 export const correctAnswer = ["a", "b", "c", "d"];
+
+export const bundleTagName = [
+  "apsc-2025-prelims-full-length-test-series-bundle",
+  "apsc-2025-mains-full-length-test-series-bundle",
+];

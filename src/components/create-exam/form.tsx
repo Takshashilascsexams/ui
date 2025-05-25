@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { difficultyLevel, testCategory } from "@/utils/arrays";
+import { difficultyLevel, testCategory, bundleTagName } from "@/utils/arrays";
 import getClerkToken from "@/actions/client/getClerkToken";
 import { revalidateTestSeries } from "@/actions/client/fetchLatestExams";
 import { revalidateCategorizedExams } from "@/actions/client/fetchCategorizedExams";
@@ -166,6 +166,30 @@ const addNewTestFormSchema = z
     {
       message: "Discount price cannot be greater or equal to original price.",
       path: ["discountPrice"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.isPartOfBundle) {
+        return data.bundleTag && data.bundleTag.trim() !== "";
+      }
+      return true;
+    },
+    {
+      message: "Bundle tag is required when exam is part of a bundle.",
+      path: ["bundleTag"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.isPartOfBundle && data.bundleTag) {
+        return bundleTagName.includes(data.bundleTag);
+      }
+      return true;
+    },
+    {
+      message: "Please select a valid bundle tag.",
+      path: ["bundleTag"],
     }
   );
 
@@ -718,21 +742,35 @@ export default function CreateExamForm() {
             )}
           />
 
-          {/* Bundle Tag */}
+          {/* Bundle Tag - Changed from Input to Select */}
           {isPartOfBundle && (
             <FormField
               control={form.control}
               name="bundleTag"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bundle tag name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Bundle tag name"
-                      className="text-sm"
-                      {...field}
-                    />
-                  </FormControl>
+                  <FormLabel>
+                    Bundle tag name <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select bundle tag" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {bundleTagName.map((value, index) => {
+                        return (
+                          <SelectItem value={value} key={index}>
+                            {value}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
