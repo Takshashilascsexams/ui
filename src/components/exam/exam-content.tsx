@@ -52,7 +52,6 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   const { state, dispatch } = useExam();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isTimerSyncing, setIsTimerSyncing] = useState(false);
   const [serverTime, setServerTime] = useState<number | null>(null);
@@ -924,14 +923,18 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
   }
 
   const currentQuestion = state.questions[state.currentQuestionIndex];
+  const isSubmitDisabled =
+    state.status !== "in-progress" ||
+    submitting ||
+    state.currentQuestionIndex !== state.questions.length - 1;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 exam-secure">
       <ExamHeader
         examDetails={state.examDetails}
-        onExit={() => setShowExitDialog(true)}
         onSubmit={() => setShowSubmitDialog(true)}
         submitting={submitting}
+        submitDisabled={isSubmitDisabled}
       />
 
       {/* Enter full screen button */}
@@ -1023,11 +1026,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
                 <Button
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
                   onClick={() => setShowSubmitDialog(true)}
-                  disabled={
-                    state.status !== "in-progress" ||
-                    submitting ||
-                    state.currentQuestionIndex !== state.questions.length - 1
-                  }
+                  disabled={isSubmitDisabled}
                 >
                   {submitting ? (
                     <>
@@ -1094,32 +1093,6 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
           </div>
         </div>
       </div>
-
-      {/* Exit Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exit Exam?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to exit the exam? Your progress will be
-              saved, but the timer will continue running.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                // Sync answers and timer before exiting
-                syncPendingAnswers(true);
-                syncTimeRemaining();
-                router.push("/tests");
-              }}
-            >
-              Exit Exam
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Submit Dialog */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>

@@ -313,7 +313,7 @@ function ExamRulesContent() {
           </div>
 
           {/* ✅ NEW: Attempt Information Section */}
-          {attemptInfo && (
+          {/* {attemptInfo && (
             <>
               <Separator className="my-6" />
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -362,7 +362,7 @@ function ExamRulesContent() {
                 )}
               </div>
             </>
-          )}
+          )} */}
 
           <Separator className="my-6" />
 

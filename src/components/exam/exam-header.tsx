@@ -1,19 +1,19 @@
 import { ExamDetails } from "@/context/exam.context";
 import { Button } from "@/components/ui/button";
-import { LogOut, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 interface ExamHeaderProps {
   examDetails: ExamDetails;
-  onExit: () => void;
   onSubmit: () => void;
   submitting?: boolean;
+  submitDisabled?: boolean;
 }
 
 export default function ExamHeader({
   examDetails,
-  onExit,
   onSubmit,
   submitting = false,
+  submitDisabled = false,
 }: ExamHeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 sm:px-6">
@@ -27,21 +27,10 @@ export default function ExamHeader({
 
         <div className="flex items-center mt-2 sm:mt-0 gap-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={onExit}
-            className="flex items-center"
-            disabled={submitting}
-          >
-            <LogOut className="mr-1 h-4 w-4" />
-            Exit
-          </Button>
-
-          <Button
             size="sm"
             onClick={onSubmit}
             className="flex items-center bg-blue-600 hover:bg-blue-700"
-            disabled={submitting}
+            disabled={submitting || submitDisabled}
           >
             {submitting ? (
               <>
