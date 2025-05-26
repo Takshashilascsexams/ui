@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import ExamContent from "@/components/exam/exam-content";
+import ExamContentWithGuard from "@/components/exam/exam-content-with-guard";
 
 import { ExamProvider } from "@/context/exam.context";
 
@@ -10,7 +10,7 @@ export default function Page() {
 
   return (
     <ExamProvider>
-      <ExamContent attemptId={attemptId} />
+      <ExamContentWithGuard attemptId={attemptId} />
     </ExamProvider>
   );
 }
