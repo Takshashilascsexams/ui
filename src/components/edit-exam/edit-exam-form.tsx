@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { difficultyLevel, testCategory } from "@/utils/arrays";
+import { difficultyLevel, testCategory, bundleTagName } from "@/utils/arrays";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -95,6 +95,16 @@ const editExamFormSchema = z
     allowNavigation: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
+    allowMultipleAttempts: z.boolean(),
+    maxAttempt: z.string().refine(
+      (val) => {
+        const maxAttempts = parseInt(val);
+        return !isNaN(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 2;
+      },
+      {
+        message: "Maximum attempts must be between 1 and 2.",
+      }
+    ),
     isFeatured: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
@@ -168,6 +178,31 @@ const editExamFormSchema = z
       message: "Discount price cannot be greater or equal to original price.",
       path: ["discountPrice"],
     }
+  )
+  .refine(
+    (data) => {
+      // Bundle tag is required when isPartOfBundle is true
+      if (data.isPartOfBundle) {
+        return data.bundleTag && data.bundleTag.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Bundle tag is required when exam is part of a bundle.",
+      path: ["bundleTag"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.isPartOfBundle && data.bundleTag) {
+        return bundleTagName.includes(data.bundleTag);
+      }
+      return true;
+    },
+    {
+      message: "Please select a valid bundle tag.",
+      path: ["bundleTag"],
+    }
   );
 
 interface EditExamFormProps {
@@ -193,6 +228,8 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
       difficultyLevel: difficultyLevel[1],
       category: testCategory[0],
       allowNavigation: "No",
+      allowMultipleAttempts: false,
+      maxAttempt: "1",
       isFeatured: "No",
       isPremium: "No",
       price: "",
@@ -203,9 +240,42 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
     },
   });
 
-  // Watch the isPremium field to conditionally show/hide price fields
+  // Watch the fields to conditionally show/hide sections
   const isPremium = form.watch("isPremium");
   const isPartOfBundle = form.watch("isPartOfBundle");
+  const allowMultipleAttempts = form.watch("allowMultipleAttempts");
+
+  // Effect to handle allowMultipleAttempts changes
+  useEffect(() => {
+    if (!allowMultipleAttempts) {
+      form.setValue("maxAttempt", "1");
+    }
+  }, [allowMultipleAttempts, form]);
+
+  // Helper function to determine if exam is part of bundle based on MongoDB data
+  const determineIsPartOfBundle = (
+    bundleTags: string[] | undefined
+  ): boolean => {
+    if (!bundleTags || !Array.isArray(bundleTags) || bundleTags.length === 0) {
+      return false;
+    }
+
+    // Check if there's at least one non-empty bundle tag
+    return bundleTags.some((tag) => tag && tag.trim().length > 0);
+  };
+
+  // Helper function to get the first valid bundle tag
+  const getFirstValidBundleTag = (bundleTags: string[] | undefined): string => {
+    if (!bundleTags || !Array.isArray(bundleTags) || bundleTags.length === 0) {
+      return "";
+    }
+
+    // Find the first non-empty bundle tag that exists in bundleTagName array
+    const validTag = bundleTags.find(
+      (tag) => tag && tag.trim().length > 0 && bundleTagName.includes(tag)
+    );
+    return validTag || "";
+  };
 
   // Fetch exam data and populate form
   useEffect(() => {
@@ -216,6 +286,10 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
 
         if (response.status === "success" && response.data.exam) {
           const exam = response.data.exam;
+
+          // Determine bundle status based on actual data
+          const isExamPartOfBundle = determineIsPartOfBundle(exam.bundleTags);
+          const bundleTagValue = getFirstValidBundleTag(exam.bundleTags);
 
           // Transform API data to form values
           form.reset({
@@ -230,6 +304,8 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             difficultyLevel: exam.difficultyLevel,
             category: exam.category,
             allowNavigation: exam.allowNavigation ? "Yes" : "No",
+            allowMultipleAttempts: Boolean(exam.allowMultipleAttempts),
+            maxAttempt: exam.maxAttempt ? exam.maxAttempt.toString() : "1",
             isFeatured: exam.isFeatured ? "Yes" : "No",
             isPremium: exam.isPremium ? "Yes" : "No",
             price: exam.price ? exam.price.toString() : "",
@@ -239,12 +315,14 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             accessPeriod: exam.accessPeriod
               ? exam.accessPeriod.toString()
               : "0",
-            isPartOfBundle: exam.bundleTags && exam.bundleTags.length > 0,
-            bundleTag:
-              exam.bundleTags && exam.bundleTags.length > 0
-                ? exam.bundleTags[0]
-                : "",
+            isPartOfBundle: isExamPartOfBundle,
+            bundleTag: bundleTagValue,
           });
+
+          // Force form validation after reset
+          setTimeout(() => {
+            form.trigger();
+          }, 100);
         } else {
           toast.error("Failed to fetch exam data");
         }
@@ -275,6 +353,13 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
         values.bundleTag = "";
       }
 
+      // Auto-adjust maxAttempt based on allowMultipleAttempts
+      if (!values.allowMultipleAttempts) {
+        values.maxAttempt = "1";
+      } else if (values.allowMultipleAttempts && values.maxAttempt === "1") {
+        values.maxAttempt = "2";
+      }
+
       // Transform form values to API expected format
       const examData = {
         title: values.title,
@@ -295,9 +380,12 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
           ? parseFloat(values.discountPrice)
           : 0,
         accessPeriod: values.accessPeriod ? parseInt(values.accessPeriod) : 0,
-        bundleTags:
-          values.isPartOfBundle && values.bundleTag ? [values.bundleTag] : [],
-        isActive: true, // Add the required isActive property
+        isPartOfBundle: values.isPartOfBundle,
+        bundleTag:
+          values.isPartOfBundle && values.bundleTag.trim()
+            ? values.bundleTag.trim()
+            : "",
+        isActive: true,
       };
 
       // Update exam
@@ -320,6 +408,8 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
       setIsSubmittingForm(false);
     }
   };
+
+  console.log(form);
 
   if (isLoading) {
     return (
@@ -623,6 +713,80 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             )}
           />
 
+          {/* Allow Multiple Attempts */}
+          <FormField
+            control={form.control}
+            name="allowMultipleAttempts"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={Boolean(field.value)}
+                      onCheckedChange={(checked) => {
+                        const checkedValue = Boolean(checked);
+                        field.onChange(checkedValue);
+
+                        // Auto-adjust maxAttempt when allowMultipleAttempts changes
+                        if (!checkedValue) {
+                          form.setValue("maxAttempt", "1", {
+                            shouldValidate: true,
+                          });
+                        } else {
+                          // Only set to "2" if current value is "1"
+                          const currentMaxAttempt =
+                            form.getValues("maxAttempt");
+                          if (currentMaxAttempt === "1") {
+                            form.setValue("maxAttempt", "2", {
+                              shouldValidate: true,
+                            });
+                          }
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormLabel>Allow multiple attempts</FormLabel>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Max Attempt - Show when allowMultipleAttempts is true OR when loading existing data */}
+          {(allowMultipleAttempts || form.getValues("maxAttempt") !== "1") && (
+            <FormField
+              control={form.control}
+              name="maxAttempt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Maximum attempts allowed
+                    <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="2"
+                      placeholder="Enter maximum attempts"
+                      className="text-sm"
+                      {...field}
+                      disabled={!allowMultipleAttempts}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {allowMultipleAttempts
+                      ? `Students can attempt this exam up to ${
+                          field.value || "X"
+                        } times`
+                      : "Multiple attempts are disabled - maximum attempts set to 1"}
+                  </p>
+                </FormItem>
+              )}
+            />
+          )}
+
           {/* Featured */}
           <FormField
             control={form.control}
@@ -755,37 +919,47 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             control={form.control}
             name="isPartOfBundle"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
                   <Checkbox
-                    id="isPartOfBundle"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel className="ml-2">
-                  This exam is part of a bundle
-                </FormLabel>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>This exam is part of a bundle</FormLabel>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Bundle Tag */}
+          {/* Bundle Tag - Select dropdown like in CreateExamForm */}
           {isPartOfBundle && (
             <FormField
               control={form.control}
               name="bundleTag"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bundle tag name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Bundle tag name"
-                      className="text-sm"
-                      {...field}
-                    />
-                  </FormControl>
+                  <FormLabel>
+                    Bundle tag name <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select bundle tag" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {bundleTagName.map((value, index) => {
+                        return (
+                          <SelectItem value={value} key={index}>
+                            {value}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
