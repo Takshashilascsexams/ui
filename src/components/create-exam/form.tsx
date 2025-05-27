@@ -139,14 +139,20 @@ const addNewTestFormSchema = z
       const passPercentage = parseInt(data.passMarkPercentage);
       const totalMarks = parseInt(data.totalMarks);
 
-      return (
-        !isNaN(passPercentage) &&
-        !isNaN(totalMarks) &&
-        passPercentage >= totalMarks * 0.35
-      );
+      if (isNaN(passPercentage) || isNaN(totalMarks)) {
+        return false;
+      }
+
+      // Calculate minimum and maximum allowed pass marks
+      const minPassMark = (30 / 100) * totalMarks;
+      const maxPassMark = (50 / 100) * totalMarks;
+      const currentPassMark = (passPercentage / 100) * totalMarks;
+
+      return currentPassMark >= minPassMark && currentPassMark <= maxPassMark;
     },
     {
-      message: "Pass mark percentage should be at least 30% of total marks.",
+      message:
+        "Pass mark percentage must be between 30% and 50% of total marks.",
       path: ["passMarkPercentage"],
     }
   )
