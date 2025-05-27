@@ -367,6 +367,35 @@ class ExamAdminService {
 
     return await response.json();
   }
+
+  /**
+   * Recalculate exam attempt results for a specific student
+   * @param attemptId ID of the exam attempt
+   * @param studentId ID of the student
+   */
+  async recalculateExamAttempt(attemptId: string, studentId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/admin-recalculate/${attemptId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ studentId }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to recalculate exam attempt");
+    }
+
+    return await response.json();
+  }
 }
 
 // Export as singleton

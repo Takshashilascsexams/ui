@@ -1140,7 +1140,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
         open={showSecurityDialog}
         onOpenChange={setShowSecurityDialog}
       >
-        <AlertDialogContent className="w-[95vw] max-w-md">
+        <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-amber-600">
               ⚠️ Security Warning
