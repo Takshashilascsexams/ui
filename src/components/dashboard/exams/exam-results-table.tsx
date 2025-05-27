@@ -33,6 +33,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import examAdminService from "@/services/adminExam.services";
 import {
   Eye,
@@ -40,6 +51,8 @@ import {
   ChevronUp,
   ChevronDown,
   SlidersHorizontal,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 
 // Define student result type based on API response
@@ -208,6 +221,11 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
   });
   const [loading, setLoading] = useState(true);
 
+  // State for recalculation
+  const [recalculatingAttempts, setRecalculatingAttempts] = useState<
+    Set<string>
+  >(new Set());
+
   // Fetch results from API
   useEffect(() => {
     const fetchResults = async () => {
@@ -265,6 +283,77 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
     currentPage,
     limit,
   ]);
+
+  // Handle recalculate attempt
+  const handleRecalculateAttempt = async (
+    attemptId: string,
+    studentId: string,
+    studentName: string
+  ) => {
+    try {
+      // Add to recalculating set
+      setRecalculatingAttempts((prev) => new Set(prev).add(attemptId));
+
+      const response = await examAdminService.recalculateExamAttempt(
+        attemptId,
+        studentId
+      );
+
+      if (response.status === "success") {
+        const { changes, newResults } = response.data;
+
+        // Check if any significant changes occurred
+        const hasSignificantChanges = Object.values(changes).some(
+          (changed) => changed
+        );
+
+        if (hasSignificantChanges) {
+          // Update the specific result in state
+          setStudentResults((prev) =>
+            prev.map((result) =>
+              result.id === attemptId
+                ? {
+                    ...result,
+                    score: newResults.scorePercentage,
+                    hasPassed: newResults.hasPassed,
+                    correctAnswers: newResults.correctAnswers,
+                    wrongAnswers: newResults.wrongAnswers,
+                    unanswered: newResults.unattempted,
+                  }
+                : result
+            )
+          );
+
+          toast.success(`Recalculation completed for ${studentName}`, {
+            description: `Score: ${newResults.scorePercentage}% | Status: ${
+              newResults.hasPassed ? "Passed" : "Failed"
+            }`,
+          });
+        } else {
+          toast.info(`No changes found for ${studentName}`, {
+            description: "The attempt results are already accurate.",
+          });
+        }
+      } else {
+        toast.error(`Failed to recalculate for ${studentName}`, {
+          description: response.message || "Unknown error occurred",
+        });
+      }
+    } catch (error) {
+      console.error("Error recalculating attempt:", error);
+      toast.error(`Failed to recalculate for ${studentName}`, {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      // Remove from recalculating set
+      setRecalculatingAttempts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(attemptId);
+        return newSet;
+      });
+    }
+  };
 
   // Handle sort
   const handleSort = (column: string) => {
@@ -342,6 +431,11 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
         );
     }
   }
+
+  // Check if recalculate should be enabled for a result
+  const canRecalculate = (result: StudentResult) => {
+    return ["completed", "timed-out"].includes(result.status);
+  };
 
   return (
     <div>
@@ -518,27 +612,105 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-600"
-                            asChild
-                          >
-                            <Link
-                              href={`/dashboard/exams/results/${result.id}`}
+                    <div className="flex items-center justify-center gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-blue-600"
+                              asChild
                             >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="left">
-                          View Detailed Result
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                              <Link
+                                href={`/dashboard/exams/results/${result.id}`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            View Detailed Result
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      {/* Recalculate Button */}
+                      {canRecalculate(result) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                    disabled={recalculatingAttempts.has(
+                                      result.id
+                                    )}
+                                  >
+                                    {recalculatingAttempts.has(result.id) ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RotateCcw className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Recalculate Exam Results
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will recalculate the exam results for{" "}
+                                      <strong>{result.studentName}</strong>{" "}
+                                      based on the current question answers and
+                                      scoring rules. Any changes will be
+                                      reflected immediately.
+                                      <br />
+                                      <br />
+                                      <span className="text-sm text-gray-600">
+                                        Current Score:{" "}
+                                        {typeof result.score === "number"
+                                          ? result.score.toFixed(1)
+                                          : (
+                                              parseFloat(
+                                                String(result.score)
+                                              ) || 0
+                                            ).toFixed(1)}
+                                        % | Status:{" "}
+                                        {result.hasPassed ? "Passed" : "Failed"}
+                                      </span>
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleRecalculateAttempt(
+                                          result.id,
+                                          result.userId,
+                                          result.studentName
+                                        )
+                                      }
+                                      className="bg-orange-600 hover:bg-orange-700"
+                                    >
+                                      Recalculate
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">
+                              Recalculate Results
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
