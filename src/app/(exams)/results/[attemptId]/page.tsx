@@ -226,11 +226,11 @@ export default function ResultsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push("/tests")}
+            onClick={() => router.push("/profile")}
             className="flex items-center gap-1"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Tests</span>
+            <span>Back to Profile</span>
           </Button>
         </div>
       </div>
@@ -778,13 +778,13 @@ export default function ResultsPage() {
             Back to Tests
           </Button>
 
-          <Button
+          {/* <Button
             onClick={() => router.push(`/rules?examId=${results.exam.id}`)}
             className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
           >
             <FileText className="h-4 w-4" />
             Re-attempt Exam
-          </Button>
+          </Button> */}
         </div>
       </div>
       <Toaster position="top-center" richColors />

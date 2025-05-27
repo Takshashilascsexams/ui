@@ -1,6 +1,7 @@
 import { convertToRedeableDate } from "@/lib/convertToReadableDate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Phone, Clock, Cake } from "lucide-react";
+import ExamResultsSection from "./exam-results-section";
 
 type ProfileDetailsProps = {
   fullName: string;
@@ -17,8 +18,6 @@ export default function ProfileDetails({
   joined,
   dateOfBirth,
 }: ProfileDetailsProps) {
-  //   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
   // Format phone number for display (hide part of it for privacy)
   const formatPhoneNumber = (phone: string) => {
     if (!phone || phone === "Not provided") return phone;
@@ -45,13 +44,6 @@ export default function ProfileDetails({
         <h2 className="text-xl font-semibold text-gray-800">
           Personal Information
         </h2>
-        {/* <Button
-          onClick={() => setIsEditModalOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Profile
-        </Button> */}
       </div>
 
       <Card>
@@ -130,14 +122,8 @@ export default function ProfileDetails({
         </CardContent>
       </Card>
 
-      {/* Edit Profile Modal */}
-      {/* <ProfileEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        fullName={fullName}
-        email={email}
-        phoneNumber={phoneNumber}
-      /> */}
+      {/* Exam Results Section */}
+      <ExamResultsSection />
     </div>
   );
 }
