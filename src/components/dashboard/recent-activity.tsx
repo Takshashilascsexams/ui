@@ -81,12 +81,12 @@ async function RecentActivityContent() {
         <div className="bg-white rounded-lg border border-gray-100 h-full">
           <div className="flex justify-between items-center p-4 border-b border-gray-100">
             <h2 className="text-xl font-bold text-gray-800">Recent Activity</h2>
-            <a
+            {/* <a
               href="/dashboard/activity"
               className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors"
             >
               View all
-            </a>
+            </a> */}
           </div>
 
           <div className="p-8 text-center">
@@ -109,7 +109,7 @@ async function RecentActivityContent() {
             <h2 className="text-xl font-bold text-gray-800">Recent Activity</h2>
             <p className="text-sm text-gray-500">Latest system updates</p>
           </div>
-          <a
+          {/* <a
             href="/dashboard/activity"
             className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors flex items-center"
           >
@@ -127,7 +127,7 @@ async function RecentActivityContent() {
                 d="M9 5l7 7-7 7"
               />
             </svg>
-          </a>
+          </a> */}
         </div>
 
         <div className="max-h-[400px] overflow-y-auto">
