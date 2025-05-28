@@ -64,9 +64,17 @@ export const addNewTestFormSchema = z
     hasNegativeMarking: z.enum(["Yes", "No"], {
       message: "Invalid option selection.",
     }),
-    negativeMarks: z.enum(negativeMarks as [string, ...string[]], {
-      message: "Invalid option selection.",
-    }),
+    negativeMarks: z.string().refine(
+      (val) => {
+        const numVal = parseFloat(val);
+        return (
+          !isNaN(numVal) && (numVal === 0 || numVal === 0.25 || numVal === 0.5)
+        );
+      },
+      {
+        message: "Negative marking value must be either 0, 0.25 or 0.5.",
+      }
+    ),
     image: z
       .instanceof(File)
       .optional()
