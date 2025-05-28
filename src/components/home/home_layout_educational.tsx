@@ -1,5 +1,6 @@
 import React from "react";
 import Hero from "./hero";
+import Notification from "./notification";
 import LatestExamsSection from "./latest-exams-section";
 import ContentSection from "./content_section";
 import ResultsSection from "./results_section";
@@ -26,7 +27,7 @@ type HomeLayoutEducationalProp = {
 };
 
 export default function HomeLayoutEducational({
-  // notificationText,
+  notificationText,
   testSeries,
   latestBlogsData,
   currentAffairsData,
@@ -35,6 +36,7 @@ export default function HomeLayoutEducational({
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Hero />
+      <Notification notificationText={notificationText} />
       <LatestExamsSection testSeries={testSeries} />
       {publishedResults && publishedResults.length > 0 && (
         <ResultsSection publications={publishedResults} />
