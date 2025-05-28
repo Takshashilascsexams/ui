@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 const notificationText =
-  "Results for Indian Polity Test Series are out! Check Now";
+  "Your exam results will be available in your profile once you complete your exam.";
 
 export default async function Home() {
   unstable_noStore();
