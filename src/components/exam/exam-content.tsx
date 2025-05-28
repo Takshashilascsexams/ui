@@ -621,7 +621,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
       } catch (err) {
         console.error("Error loading exam:", err);
         toast.error("Failed to load exam. Redirecting back...");
-        setTimeout(() => router.push("/tests"), 3000);
+        setTimeout(() => router.push("/thankyou"), 3000);
       } finally {
         setLoading(false);
       }
@@ -947,6 +947,7 @@ export default function ExamContent({ attemptId }: { attemptId: string }) {
               // Question display
               <QuestionDisplay
                 question={currentQuestion}
+                questionNumber={state.currentQuestionIndex + 1}
                 onAnswerChange={saveAnswer}
                 disabled={state.status !== "in-progress"}
               />

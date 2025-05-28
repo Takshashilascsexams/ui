@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 import { fetchLatestExams } from "@/actions/client/fetchLatestExams";
+import { fetchTopFeedbacks } from "@/actions/client/fetchTopFeedbacks";
 import HomeLayoutEducational from "@/components/home/home_layout_educational";
 import {
   latestBlogsSectionData,
@@ -21,9 +22,10 @@ export default async function Home() {
   unstable_noStore();
 
   // Fetch data in parallel for better performance
-  const [testSeries, publishedResults] = await Promise.all([
+  const [testSeries, publishedResults, topFeedbacks] = await Promise.all([
     fetchLatestExams(),
     fetchPublishedResults(),
+    fetchTopFeedbacks(4, false), // Fetch top 4 feedbacks, not anonymous
   ]);
 
   return (
@@ -33,6 +35,7 @@ export default async function Home() {
       latestBlogsData={latestBlogsSectionData}
       currentAffairsData={currentAffairsSectionData}
       publishedResults={publishedResults}
+      topFeedbacks={topFeedbacks}
     />
   );
 }
