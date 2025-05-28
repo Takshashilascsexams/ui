@@ -120,7 +120,7 @@ export default async function DashboardPage() {
             </span>
           </div>
           <div className="mt-2 sm:mt-0">
-            <span>Exam Portal v2.0</span>
+            <span>Exam Portal v1.0</span>
           </div>
         </div>
       </div>
