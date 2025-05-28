@@ -4,7 +4,9 @@ import Notification from "./notification";
 import LatestExamsSection from "./latest-exams-section";
 import ContentSection from "./content_section";
 import ResultsSection from "./results_section";
+import FeedbacksSection from "./feedback-section";
 import { FetchLatestExamsType } from "@/actions/client/fetchLatestExams";
+import { FetchTopFeedbacksType } from "@/actions/client/fetchTopFeedbacks";
 import FeatureSection from "./feature_section";
 import CtaSection from "./cta_section";
 import { currentAffairsAndBlogsSectionDataType } from "@/types/dataTypes";
@@ -23,7 +25,8 @@ type HomeLayoutEducationalProp = {
   testSeries: FetchLatestExamsType[];
   latestBlogsData: currentAffairsAndBlogsSectionDataType[];
   currentAffairsData: currentAffairsAndBlogsSectionDataType[];
-  publishedResults?: ResultPublication[]; // Make this optional
+  publishedResults?: ResultPublication[];
+  topFeedbacks?: FetchTopFeedbacksType[];
 };
 
 export default function HomeLayoutEducational({
@@ -31,7 +34,8 @@ export default function HomeLayoutEducational({
   testSeries,
   latestBlogsData,
   currentAffairsData,
-  publishedResults = [], // Default to empty array
+  publishedResults = [],
+  topFeedbacks = [],
 }: HomeLayoutEducationalProp) {
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -53,6 +57,9 @@ export default function HomeLayoutEducational({
         buttonTitle="Read More"
         buttonColor="red"
       />
+      {topFeedbacks && topFeedbacks.length > 0 && (
+        <FeedbacksSection feedbacks={topFeedbacks} />
+      )}
       <FeatureSection />
       <CtaSection />
     </div>

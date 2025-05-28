@@ -5,12 +5,14 @@ import { Label } from "@/components/ui/label";
 
 interface QuestionDisplayProps {
   question: Question;
+  questionNumber: number;
   onAnswerChange: (questionId: string, selectedOption: string | null) => void;
   disabled?: boolean;
 }
 
 export default function QuestionDisplay({
   question,
+  questionNumber,
   onAnswerChange,
   disabled = false,
 }: QuestionDisplayProps) {
@@ -32,14 +34,18 @@ export default function QuestionDisplay({
 
   return (
     <div className="w-full bg-white border border-gray-200 rounded-lg p-6">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm font-medium text-gray-500">
+      <div className="mb-4 sm:mb-6">
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
+          Question {questionNumber}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+          <div className="text-xs sm:text-sm font-medium text-gray-500">
             {question.type === "MCQ"
               ? "Multiple Choice Question"
               : "Statement Based Question"}
           </div>
-          <div className="text-sm font-medium text-gray-500">
+          <div className="text-xs sm:text-sm font-medium text-gray-500">
             {question.marks} mark{question.marks > 1 ? "s" : ""}
           </div>
         </div>

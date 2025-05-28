@@ -6,8 +6,9 @@ import { Check, Home, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import FeedbackForm from "@/components/thankyou/feedback-form";
 
-export default function ThankYouPage() {
+export default function Page() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [canNavigate, setCanNavigate] = useState(false);
@@ -40,8 +41,8 @@ export default function ThankYouPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <Card className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-8">
+      <Card className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl mb-6">
         <CardHeader className="pb-3 px-4 sm:px-6">
           <CardTitle className="text-center text-xl sm:text-2xl lg:text-3xl">
             {isLoading
@@ -126,6 +127,10 @@ export default function ThankYouPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
+        <FeedbackForm />
+      </div>
     </div>
   );
 }
