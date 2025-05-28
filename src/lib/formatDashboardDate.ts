@@ -1,35 +1,72 @@
-export function formatDashboardDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+export function formatDashboardDate(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInSeconds = Math.floor(diffInMs / 1000);
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
 
-  // Check if date is valid
-  if (isNaN(d.getTime())) {
+  // Handle invalid dates
+  if (isNaN(date.getTime())) {
     return "Invalid date";
   }
 
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  // Format relative time
-  if (diffSec < 60) {
+  // Just now (less than 1 minute)
+  if (diffInSeconds < 60) {
     return "just now";
-  } else if (diffMin < 60) {
-    return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
-  } else if (diffHour < 24) {
-    return `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`;
-  } else if (diffDay < 7) {
-    return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
-  } else {
-    // Format options for older dates
-    const options: Intl.DateTimeFormatOptions = {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    };
-
-    return new Intl.DateTimeFormat("en-US", options).format(d);
   }
+
+  // Minutes ago (1-59 minutes)
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  // Hours ago (1-23 hours)
+  if (diffInHours < 24) {
+    return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+  }
+
+  // Days ago (1-6 days)
+  if (diffInDays < 7) {
+    return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
+  }
+
+  // More than a week ago - show actual date
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+}
+
+export function formatDashboardDateTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+export function formatDashboardTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+
+  if (isNaN(date.getTime())) {
+    return "Invalid time";
+  }
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
