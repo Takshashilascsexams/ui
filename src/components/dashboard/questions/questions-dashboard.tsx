@@ -4,12 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Search, RefreshCw, Filter } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import questionAdminService from "@/services/adminQuestions.services";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuestionTable from "./questions-table";
 import DashboardLoading from "../exams/dashboard-loading";
+import questionAdminService, {
+  QuestionData,
+  ApiResponse,
+  QuestionsListResponseFlat,
+} from "@/services/adminQuestions.services";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,28 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// Types for question data
-export interface QuestionData {
-  _id: string;
-  questionText: string;
-  type: string;
-  difficulty: string;
-  category: string;
-  marks: number;
-  negativeMarks: number;
-  options: {
-    optionText: string;
-    isCorrect: boolean;
-  }[];
-  statements?: {
-    statementNumber: number;
-    statementText: string;
-    isCorrect: boolean;
-  }[];
-  explanation: string;
-  createdAt: string;
-}
 
 export interface PaginationData {
   total: number;
@@ -48,7 +30,6 @@ export interface PaginationData {
 }
 
 export default function QuestionsDashboard() {
-  // State management
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +42,6 @@ export default function QuestionsDashboard() {
     limit: 10,
   });
 
-  // Create a reusable filter helper
   const getActiveFilter = useCallback(() => {
     switch (activeTab) {
       case "mcq":
@@ -73,39 +53,54 @@ export default function QuestionsDashboard() {
     }
   }, [activeTab]);
 
-  // Fetch questions from API
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         setLoading(true);
 
-        // Filter params based on active tab
         const rawFilters = getActiveFilter();
         const filters: Record<string, string> = Object.fromEntries(
           Object.entries(rawFilters).filter(([, value]) => value !== undefined)
         );
 
-        // Add search query if present
         if (searchQuery.trim()) {
           filters.search = searchQuery;
         }
 
-        const response = await questionAdminService.getAllQuestions(
-          pagination.page,
-          pagination.limit,
-          "createdAt",
-          "desc",
-          filters
-        );
+        const response: ApiResponse<QuestionsListResponseFlat> =
+          await questionAdminService.getAllQuestions(
+            pagination.page,
+            pagination.limit,
+            "createdAt",
+            "desc",
+            filters
+          );
 
-        setQuestions(response.data.questions);
-        setPagination(response.data.pagination);
+        if (response.status === "success" && response.data) {
+          setQuestions(response.data.questions);
+
+          setPagination((prev) => ({
+            ...prev,
+            total: response.data.totalCount,
+            pages: response.data.totalPages,
+            page: response.data.currentPage,
+          }));
+        } else {
+          throw new Error(response.message || "Failed to fetch questions");
+        }
       } catch (error) {
         toast.error("Failed to load questions", {
           description:
             error instanceof Error ? error.message : "Unknown error occurred",
         });
         console.error("Error fetching questions:", error);
+
+        setQuestions([]);
+        setPagination((prev) => ({
+          ...prev,
+          total: 0,
+          pages: 1,
+        }));
       } finally {
         setLoading(false);
       }
@@ -121,36 +116,37 @@ export default function QuestionsDashboard() {
     getActiveFilter,
   ]);
 
-  // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // The search query is already being tracked in state, so just prevent the default form submission
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     setRefreshTrigger((prev) => prev + 1);
+    toast.success("Questions refreshed");
   };
 
-  // Handle pagination
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= pagination.pages) {
       setPagination((prev) => ({ ...prev, page: newPage }));
     }
   };
 
-  // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page on tab change
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  // Handle question deletion
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      await questionAdminService.deleteQuestion(questionId);
-      toast.success("Question deleted successfully");
-      setRefreshTrigger((prev) => prev + 1); // Refresh the list
+      const success = await questionAdminService.deleteQuestion(questionId);
+
+      if (success) {
+        toast.success("Question deleted successfully");
+        setRefreshTrigger((prev) => prev + 1);
+      } else {
+        throw new Error("Delete operation failed");
+      }
     } catch (error) {
       toast.error("Failed to delete question", {
         description:
@@ -159,9 +155,13 @@ export default function QuestionsDashboard() {
     }
   };
 
+  const handleDifficultyFilter = (difficulty: string) => {
+    console.log("Difficulty filter selected:", difficulty);
+    toast.info(`Filtering by ${difficulty} difficulty (Coming soon)`);
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
-      {/* Dashboard Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -170,6 +170,13 @@ export default function QuestionsDashboard() {
           <p className="text-sm text-gray-600 mt-1">
             View, search and manage all questions in the system
           </p>
+          {!loading && (
+            <p className="text-xs text-gray-500 mt-1">
+              {pagination.total} total questions
+              {searchQuery && ` matching "${searchQuery}"`}
+              {activeTab !== "all" && ` (${activeTab.toUpperCase()} only)`}
+            </p>
+          )}
         </div>
 
         <Link
@@ -181,7 +188,6 @@ export default function QuestionsDashboard() {
         </Link>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <Tabs
           defaultValue="all"
@@ -213,16 +219,34 @@ export default function QuestionsDashboard() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" title="Filter">
+              <Button
+                variant="outline"
+                size="icon"
+                title="Filter by Difficulty"
+              >
                 <Filter size={18} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
-                <DropdownMenuItem>All Difficulty Levels</DropdownMenuItem>
-                <DropdownMenuItem>Easy</DropdownMenuItem>
-                <DropdownMenuItem>Medium</DropdownMenuItem>
-                <DropdownMenuItem>Hard</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDifficultyFilter("all")}>
+                  All Difficulty Levels
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDifficultyFilter("EASY")}
+                >
+                  Easy
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDifficultyFilter("MEDIUM")}
+                >
+                  Medium
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDifficultyFilter("HARD")}
+                >
+                  Hard
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,22 +256,47 @@ export default function QuestionsDashboard() {
             size="icon"
             onClick={handleRefresh}
             title="Refresh"
+            disabled={loading}
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
           </Button>
         </div>
       </div>
 
-      {/* Questions Table */}
       {loading ? (
         <DashboardLoading />
-      ) : (
+      ) : questions.length > 0 ? (
         <QuestionTable
           questions={questions}
           pagination={pagination}
           onPageChange={handlePageChange}
           onDeleteQuestion={handleDeleteQuestion}
         />
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
+          <div className="text-gray-400 mb-4">
+            <Search size={48} />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No questions found
+          </h3>
+          <p className="text-gray-600 text-center max-w-md">
+            {searchQuery
+              ? `No questions match your search "${searchQuery}". Try adjusting your search terms.`
+              : activeTab !== "all"
+              ? `No ${activeTab.toUpperCase()} questions found. Try switching to "All Questions" or create a new question.`
+              : "Get started by creating your first question."}
+          </p>
+          {!searchQuery && (
+            <Link
+              href="/dashboard/questions/create-question"
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              <Plus size={16} />
+              Create First Question
+            </Link>
+          )}
+        </div>
       )}
 
       <Toaster position="top-center" richColors />

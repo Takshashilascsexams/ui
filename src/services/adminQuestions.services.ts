@@ -1,21 +1,18 @@
 import getClerkToken from "@/actions/client/getClerkToken";
 
-// ============= SHARED TYPE DEFINITIONS =============
-// Supporting interfaces for nested objects
 export interface QuestionOption {
-  _id?: string; // MongoDB ObjectId (optional for new options)
+  _id?: string;
   optionText: string;
   isCorrect: boolean;
 }
 
 export interface QuestionStatement {
-  _id?: string; // MongoDB ObjectId (optional for new statements)
+  _id?: string;
   statementNumber: number;
   statementText: string;
   isCorrect: boolean;
 }
 
-// Base question data interface - matches backend model exactly
 export interface BaseQuestionData {
   questionText: string;
   difficultyLevel: "EASY" | "MEDIUM" | "HARD";
@@ -27,25 +24,21 @@ export interface BaseQuestionData {
   questionCode?: string;
   image?: string;
   explanation: string;
-  // Administrative fields (optional for frontend, but present in backend)
   isActive?: boolean;
-  createdBy?: string; // ObjectId as string
-  examId?: string; // ObjectId as string
-  createdAt?: string; // ISO date string
-  updatedAt?: string; // ISO date string
-  _id?: string; // MongoDB ObjectId
+  createdBy?: string;
+  examId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _id?: string;
 }
 
-// MCQ specific properties
 export interface MCQQuestionData extends BaseQuestionData {
   type: "MCQ";
   options: QuestionOption[];
-  // MCQ questions don't have statements or statement instructions
   statements?: never;
   statementInstruction?: never;
 }
 
-// Statement based question properties
 export interface StatementQuestionData extends BaseQuestionData {
   type: "STATEMENT_BASED";
   options: QuestionOption[];
@@ -53,18 +46,16 @@ export interface StatementQuestionData extends BaseQuestionData {
   statementInstruction: string;
 }
 
-// Union type for both question types
 export type QuestionData = MCQQuestionData | StatementQuestionData;
 
-// Form-specific interfaces
 export interface QuestionFormValues {
   questionText: string;
   type: "MCQ" | "STATEMENT_BASED";
   difficultyLevel: "EASY" | "MEDIUM" | "HARD";
   subject: string;
-  marks: string; // Form values are strings initially
-  hasNegativeMarking: "Yes" | "No"; // Form values are string enums
-  negativeMarks: string; // Form values are strings initially
+  marks: string;
+  hasNegativeMarking: "Yes" | "No";
+  negativeMarks: string;
   correctAnswer: string;
   questionCode?: string;
   explanation: string;
@@ -74,7 +65,6 @@ export interface QuestionFormValues {
   statementInstruction?: string;
 }
 
-// API Response interfaces
 export interface ApiResponse<T> {
   status: "success" | "error";
   message: string;
@@ -86,14 +76,13 @@ export interface QuestionResponse {
   question: QuestionData;
 }
 
-export interface QuestionsListResponse {
+export interface QuestionsListResponseFlat {
   questions: QuestionData[];
   totalCount: number;
   currentPage: number;
   totalPages: number;
 }
 
-// Type transformation utilities
 export function isStatementBasedQuestion(
   question: QuestionData
 ): question is StatementQuestionData {
@@ -106,7 +95,6 @@ export function isMCQQuestion(
   return question.type === "MCQ";
 }
 
-// Transform form values to API payload
 export function transformFormToApiPayload(
   values: QuestionFormValues
 ): Omit<
@@ -144,9 +132,6 @@ export function transformFormToApiPayload(
   }
 }
 
-/**
- * Service to interact with admin question-related API endpoints
- */
 class QuestionAdminService {
   private apiUrl: string;
 
@@ -154,16 +139,13 @@ class QuestionAdminService {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
   }
 
-  /**
-   * Get all questions for admin dashboard
-   */
   async getAllQuestions(
     page = 1,
     limit = 10,
     sortBy = "createdAt",
     sortOrder = "desc",
     filters: Record<string, string> = {}
-  ): Promise<ApiResponse<QuestionsListResponse>> {
+  ): Promise<ApiResponse<QuestionsListResponseFlat>> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
@@ -195,12 +177,35 @@ class QuestionAdminService {
       );
     }
 
-    return await response.json();
+    const result = await response.json();
+
+    // Transform response structure to ensure consistency
+    if (result.data && result.data.pagination) {
+      return {
+        ...result,
+        data: {
+          questions: result.data.questions,
+          totalCount: result.data.pagination.totalCount,
+          currentPage: result.data.pagination.currentPage,
+          totalPages: result.data.pagination.totalPages,
+        },
+      };
+    } else if (result.data && result.data.questions) {
+      return result;
+    } else {
+      return {
+        status: "success",
+        message: "Questions retrieved successfully",
+        data: {
+          questions: result.questions || result.data || [],
+          totalCount: result.totalCount || result.total || 0,
+          currentPage: result.currentPage || result.page || page,
+          totalPages: result.totalPages || result.pages || 1,
+        },
+      };
+    }
   }
 
-  /**
-   * Get a specific question by ID
-   */
   async getQuestionById(
     questionId: string
   ): Promise<ApiResponse<QuestionResponse>> {
@@ -222,9 +227,6 @@ class QuestionAdminService {
     return await response.json();
   }
 
-  /**
-   * Update a question using form values
-   */
   async updateQuestion(
     questionId: string,
     formValues: QuestionFormValues
@@ -232,7 +234,6 @@ class QuestionAdminService {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    // Transform form values to API payload
     const questionData = transformFormToApiPayload(formValues);
 
     const response = await fetch(`${this.apiUrl}/questions/${questionId}`, {
@@ -252,16 +253,12 @@ class QuestionAdminService {
     return await response.json();
   }
 
-  /**
-   * Create a new question using form values
-   */
   async createQuestion(
     formValues: QuestionFormValues & { examId: string }
   ): Promise<ApiResponse<QuestionResponse>> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    // Transform form values to API payload and add examId
     const basePayload = transformFormToApiPayload(formValues);
     const questionData = {
       ...basePayload,
@@ -285,9 +282,6 @@ class QuestionAdminService {
     return await response.json();
   }
 
-  /**
-   * Delete a question
-   */
   async deleteQuestion(questionId: string): Promise<boolean> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
@@ -308,6 +302,5 @@ class QuestionAdminService {
   }
 }
 
-// Export as singleton
 const questionAdminService = new QuestionAdminService();
 export default questionAdminService;

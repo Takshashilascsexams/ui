@@ -3,7 +3,8 @@ import { Edit, Trash2, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QuestionData, PaginationData } from "./questions-dashboard";
+import { PaginationData } from "./questions-dashboard";
+import { QuestionData } from "@/services/adminQuestions.services";
 import {
   Table,
   TableBody,
@@ -151,13 +152,15 @@ export default function QuestionTable({
                   </div>
                 </TableCell>
                 <TableCell>{getTypeBadge(question.type)}</TableCell>
-                <TableCell>{getDifficultyBadge(question.difficulty)}</TableCell>
+                <TableCell>
+                  {getDifficultyBadge(question.difficultyLevel)}
+                </TableCell>
                 <TableCell className="text-center">{question.marks}</TableCell>
                 <TableCell className="text-center">
                   {question.negativeMarks}
                 </TableCell>
                 <TableCell className="text-center">
-                  {formatDistanceToNow(new Date(question.createdAt), {
+                  {formatDistanceToNow(new Date(question.createdAt ?? 0), {
                     addSuffix: true,
                   })}
                 </TableCell>
@@ -209,7 +212,9 @@ export default function QuestionTable({
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
-                            onClick={() => onDeleteQuestion(question._id)}
+                            onClick={() =>
+                              question._id && onDeleteQuestion(question._id)
+                            }
                           >
                             Delete
                           </AlertDialogAction>
