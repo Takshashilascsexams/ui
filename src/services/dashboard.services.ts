@@ -22,25 +22,68 @@ class DashboardService {
   }
 
   /**
-   * Get dashboard statistics
+   * Private method to handle API requests with consistent error handling
    */
-  async getStats(): Promise<DashboardStats> {
+  private async makeAuthenticatedRequest(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
     try {
       const token = await getClerkToken();
-      if (!token) throw new Error("Authentication token not available");
+      if (!token) {
+        throw new Error("Authentication token not available");
+      }
 
-      const response = await fetch(`${this.apiUrl}/dashboard/stats`, {
+      const response = await fetch(`${this.apiUrl}${endpoint}`, {
+        ...options,
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...options.headers,
         },
         cache: "no-store",
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch dashboard stats");
+        // Handle specific HTTP errors
+        if (response.status === 401) {
+          throw new Error("Authentication failed - please log in again");
+        }
+        if (response.status === 403) {
+          throw new Error("Access denied - insufficient permissions");
+        }
+        if (response.status >= 500) {
+          throw new Error("Server error - please try again later");
+        }
+
+        // Try to get error message from response
+        try {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message ||
+              `HTTP ${response.status}: ${response.statusText}`
+          );
+        } catch {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
       }
 
+      return response;
+    } catch (error) {
+      // Re-throw with more context
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(`Network error: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Get dashboard statistics
+   */
+  async getStats(): Promise<DashboardStats> {
+    try {
+      const response = await this.makeAuthenticatedRequest("/dashboard/stats");
       const responseData = await response.json();
 
       // Handle both wrapped and direct API responses
@@ -60,7 +103,18 @@ class DashboardService {
       };
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
-      // Return fallback data
+
+      // Propagate authentication errors to be handled by UI
+      if (
+        error instanceof Error &&
+        (error.message.includes("Authentication") ||
+          error.message.includes("token") ||
+          error.message.includes("log in"))
+      ) {
+        throw error;
+      }
+
+      // Return fallback data for other errors
       return {
         totalExams: 0,
         totalQuestions: 0,
@@ -82,24 +136,9 @@ class DashboardService {
    */
   async getRecentActivity(limit = 5): Promise<Activity[]> {
     try {
-      const token = await getClerkToken();
-      if (!token) throw new Error("Authentication token not available");
-
-      const response = await fetch(
-        `${this.apiUrl}/dashboard/activity?limit=${limit}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        }
+      const response = await this.makeAuthenticatedRequest(
+        `/dashboard/activity?limit=${limit}`
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch recent activity");
-      }
-
       const responseData = await response.json();
 
       // Handle both wrapped and direct API responses
@@ -116,6 +155,17 @@ class DashboardService {
       }));
     } catch (error) {
       console.error("Error fetching recent activity:", error);
+
+      // Propagate authentication errors
+      if (
+        error instanceof Error &&
+        (error.message.includes("Authentication") ||
+          error.message.includes("token") ||
+          error.message.includes("log in"))
+      ) {
+        throw error;
+      }
+
       return [];
     }
   }
@@ -126,24 +176,9 @@ class DashboardService {
    */
   async getPerformanceData(timeRange = "7d"): Promise<PerformanceData> {
     try {
-      const token = await getClerkToken();
-      if (!token) throw new Error("Authentication token not available");
-
-      const response = await fetch(
-        `${this.apiUrl}/dashboard/performance?timeRange=${timeRange}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        }
+      const response = await this.makeAuthenticatedRequest(
+        `/dashboard/performance?timeRange=${timeRange}`
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch performance data");
-      }
-
       const responseData = await response.json();
 
       // Handle both wrapped and direct API responses
@@ -180,6 +215,17 @@ class DashboardService {
       };
     } catch (error) {
       console.error("Error fetching performance data:", error);
+
+      // Propagate authentication errors
+      if (
+        error instanceof Error &&
+        (error.message.includes("Authentication") ||
+          error.message.includes("token") ||
+          error.message.includes("log in"))
+      ) {
+        throw error;
+      }
+
       // Return fallback data
       return {
         labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -206,21 +252,7 @@ class DashboardService {
    * Get dashboard overview
    */
   async getDashboardOverview(): Promise<DashboardOverview> {
-    const token = await getClerkToken();
-    if (!token) throw new Error("Authentication token not available");
-
-    const response = await fetch(`${this.apiUrl}/dashboard/overview`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch dashboard overview");
-    }
-
+    const response = await this.makeAuthenticatedRequest("/dashboard/overview");
     const responseData = await response.json();
 
     // Handle both wrapped and direct API responses
@@ -237,21 +269,7 @@ class DashboardService {
    * Get system health status
    */
   async getSystemHealth(): Promise<SystemHealth> {
-    const token = await getClerkToken();
-    if (!token) throw new Error("Authentication token not available");
-
-    const response = await fetch(`${this.apiUrl}/dashboard/health`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch system health");
-    }
-
+    const response = await this.makeAuthenticatedRequest("/dashboard/health");
     const responseData = await response.json();
 
     // Handle both wrapped and direct API responses
@@ -267,9 +285,6 @@ class DashboardService {
     compareWith?: string;
     includeForecasts?: boolean;
   }): Promise<DashboardAnalyticsResponse> {
-    const token = await getClerkToken();
-    if (!token) throw new Error("Authentication token not available");
-
     const queryParams = new URLSearchParams();
     if (params?.timeRange) queryParams.set("timeRange", params.timeRange);
     if (params?.compareWith) queryParams.set("compareWith", params.compareWith);
@@ -279,18 +294,7 @@ class DashboardService {
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
 
-    const response = await fetch(`${this.apiUrl}${endpoint}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch dashboard analytics");
-    }
-
+    const response = await this.makeAuthenticatedRequest(endpoint);
     const responseData = await response.json();
 
     // Handle both wrapped and direct API responses

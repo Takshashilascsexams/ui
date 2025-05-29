@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { DashboardStatsCards } from "@/components/dashboard/dashboard-stats-cards";
 import { RecentActivity } from "@/components/dashboard/recent-activity";

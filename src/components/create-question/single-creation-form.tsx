@@ -1,4 +1,3 @@
-// ============= SYNCHRONIZED CREATE QUESTION FORM =============
 "use client";
 
 import { useState, useEffect } from "react";
