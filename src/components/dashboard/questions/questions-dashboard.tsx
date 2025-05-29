@@ -79,12 +79,24 @@ export default function QuestionsDashboard() {
         if (response.status === "success" && response.data) {
           setQuestions(response.data.questions);
 
-          setPagination((prev) => ({
-            ...prev,
-            total: response.data.totalCount,
-            pages: response.data.totalPages,
-            page: response.data.currentPage,
-          }));
+          // ✅ NEW CODE: Handle pagination like the old working version
+          if (response.data.pagination) {
+            // If pagination object exists (matches old API structure)
+            setPagination({
+              total: response.data.pagination.total,
+              page: response.data.pagination.page,
+              pages: response.data.pagination.pages,
+              limit: response.data.pagination.limit,
+            });
+          } else {
+            // If flat structure (new API structure)
+            setPagination({
+              total: response.data.totalCount,
+              page: response.data.currentPage,
+              pages: response.data.totalPages,
+              limit: pagination.limit,
+            });
+          }
         } else {
           throw new Error(response.message || "Failed to fetch questions");
         }
@@ -96,11 +108,12 @@ export default function QuestionsDashboard() {
         console.error("Error fetching questions:", error);
 
         setQuestions([]);
-        setPagination((prev) => ({
-          ...prev,
+        setPagination({
           total: 0,
-          pages: 1,
-        }));
+          page: 1,
+          pages: 1, // ✅ NEW CODE: Reset to 1 instead of 0 to match old behavior
+          limit: pagination.limit,
+        });
       } finally {
         setLoading(false);
       }

@@ -99,7 +99,6 @@ export default function ExamDashboard() {
           "desc",
           filters
         );
-        console.log(response);
 
         setExams(response.data.exams);
         setPagination(response.data.pagination);
