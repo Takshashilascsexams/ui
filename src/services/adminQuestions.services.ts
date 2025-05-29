@@ -1,42 +1,148 @@
 import getClerkToken from "@/actions/client/getClerkToken";
 
-interface QuestionOption {
+// ============= SHARED TYPE DEFINITIONS =============
+// Supporting interfaces for nested objects
+export interface QuestionOption {
+  _id?: string; // MongoDB ObjectId (optional for new options)
   optionText: string;
   isCorrect: boolean;
 }
 
-interface QuestionStatement {
+export interface QuestionStatement {
+  _id?: string; // MongoDB ObjectId (optional for new statements)
   statementNumber: number;
   statementText: string;
   isCorrect: boolean;
 }
 
-// Common properties for all question types
-interface BaseQuestionData {
+// Base question data interface - matches backend model exactly
+export interface BaseQuestionData {
   questionText: string;
-  difficulty: "EASY" | "MEDIUM" | "HARD";
-  category: string;
+  difficultyLevel: "EASY" | "MEDIUM" | "HARD";
+  subject: string;
   marks: number;
+  hasNegativeMarking: boolean;
   negativeMarks: number;
+  correctAnswer: string;
+  questionCode?: string;
+  image?: string;
   explanation: string;
+  // Administrative fields (optional for frontend, but present in backend)
+  isActive?: boolean;
+  createdBy?: string; // ObjectId as string
+  examId?: string; // ObjectId as string
+  createdAt?: string; // ISO date string
+  updatedAt?: string; // ISO date string
+  _id?: string; // MongoDB ObjectId
 }
 
 // MCQ specific properties
-interface MCQQuestionData extends BaseQuestionData {
+export interface MCQQuestionData extends BaseQuestionData {
   type: "MCQ";
   options: QuestionOption[];
+  // MCQ questions don't have statements or statement instructions
+  statements?: never;
+  statementInstruction?: never;
 }
 
 // Statement based question properties
-interface StatementQuestionData extends BaseQuestionData {
+export interface StatementQuestionData extends BaseQuestionData {
   type: "STATEMENT_BASED";
   options: QuestionOption[];
   statements: QuestionStatement[];
-  statementInstructions: string;
+  statementInstruction: string;
 }
 
 // Union type for both question types
-type QuestionData = MCQQuestionData | StatementQuestionData;
+export type QuestionData = MCQQuestionData | StatementQuestionData;
+
+// Form-specific interfaces
+export interface QuestionFormValues {
+  questionText: string;
+  type: "MCQ" | "STATEMENT_BASED";
+  difficultyLevel: "EASY" | "MEDIUM" | "HARD";
+  subject: string;
+  marks: string; // Form values are strings initially
+  hasNegativeMarking: "Yes" | "No"; // Form values are string enums
+  negativeMarks: string; // Form values are strings initially
+  correctAnswer: string;
+  questionCode?: string;
+  explanation: string;
+  image?: string;
+  options: QuestionOption[];
+  statements?: QuestionStatement[];
+  statementInstruction?: string;
+}
+
+// API Response interfaces
+export interface ApiResponse<T> {
+  status: "success" | "error";
+  message: string;
+  data: T;
+  fromCache?: boolean;
+}
+
+export interface QuestionResponse {
+  question: QuestionData;
+}
+
+export interface QuestionsListResponse {
+  questions: QuestionData[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// Type transformation utilities
+export function isStatementBasedQuestion(
+  question: QuestionData
+): question is StatementQuestionData {
+  return question.type === "STATEMENT_BASED";
+}
+
+export function isMCQQuestion(
+  question: QuestionData
+): question is MCQQuestionData {
+  return question.type === "MCQ";
+}
+
+// Transform form values to API payload
+export function transformFormToApiPayload(
+  values: QuestionFormValues
+): Omit<
+  QuestionData,
+  "_id" | "createdAt" | "updatedAt" | "createdBy" | "examId"
+> {
+  const basePayload = {
+    questionText: values.questionText,
+    type: values.type,
+    difficultyLevel: values.difficultyLevel,
+    subject: values.subject,
+    marks: parseInt(values.marks),
+    hasNegativeMarking: values.hasNegativeMarking === "Yes",
+    negativeMarks: parseFloat(values.negativeMarks),
+    correctAnswer: values.correctAnswer,
+    questionCode: values.questionCode || "",
+    explanation: values.explanation,
+    image: values.image || "",
+    options: values.options,
+    isActive: true,
+  };
+
+  if (values.type === "STATEMENT_BASED") {
+    return {
+      ...basePayload,
+      type: "STATEMENT_BASED",
+      statements: values.statements || [],
+      statementInstruction: values.statementInstruction || "",
+    } as StatementQuestionData;
+  } else {
+    return {
+      ...basePayload,
+      type: "MCQ",
+    } as MCQQuestionData;
+  }
+}
 
 /**
  * Service to interact with admin question-related API endpoints
@@ -50,11 +156,6 @@ class QuestionAdminService {
 
   /**
    * Get all questions for admin dashboard
-   * @param page Page number
-   * @param limit Items per page
-   * @param sortBy Field to sort by
-   * @param sortOrder Sort order (asc or desc)
-   * @param filters Optional filters
    */
   async getAllQuestions(
     page = 1,
@@ -62,11 +163,10 @@ class QuestionAdminService {
     sortBy = "createdAt",
     sortOrder = "desc",
     filters: Record<string, string> = {}
-  ) {
+  ): Promise<ApiResponse<QuestionsListResponse>> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
-    // Build query string from filters
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
@@ -74,7 +174,6 @@ class QuestionAdminService {
       sortOrder,
     });
 
-    // Add any additional filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value) queryParams.append(key, value);
     });
@@ -101,9 +200,10 @@ class QuestionAdminService {
 
   /**
    * Get a specific question by ID
-   * @param questionId ID of the question to fetch
    */
-  async getQuestionById(questionId: string) {
+  async getQuestionById(
+    questionId: string
+  ): Promise<ApiResponse<QuestionResponse>> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
@@ -111,7 +211,7 @@ class QuestionAdminService {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      cache: "no-store", // Always fetch fresh data
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -123,13 +223,17 @@ class QuestionAdminService {
   }
 
   /**
-   * Update a question
-   * @param questionId ID of the question to update
-   * @param questionData Updated question data
+   * Update a question using form values
    */
-  async updateQuestion(questionId: string, questionData: QuestionData) {
+  async updateQuestion(
+    questionId: string,
+    formValues: QuestionFormValues
+  ): Promise<ApiResponse<QuestionResponse>> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
+
+    // Transform form values to API payload
+    const questionData = transformFormToApiPayload(formValues);
 
     const response = await fetch(`${this.apiUrl}/questions/${questionId}`, {
       method: "PUT",
@@ -149,10 +253,42 @@ class QuestionAdminService {
   }
 
   /**
-   * Delete a question
-   * @param questionId ID of the question to delete
+   * Create a new question using form values
    */
-  async deleteQuestion(questionId: string) {
+  async createQuestion(
+    formValues: QuestionFormValues & { examId: string }
+  ): Promise<ApiResponse<QuestionResponse>> {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    // Transform form values to API payload and add examId
+    const basePayload = transformFormToApiPayload(formValues);
+    const questionData = {
+      ...basePayload,
+      examId: formValues.examId,
+    };
+
+    const response = await fetch(`${this.apiUrl}/questions/single-upload`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(questionData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to create question");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Delete a question
+   */
+  async deleteQuestion(questionId: string): Promise<boolean> {
     const token = await getClerkToken();
     if (!token) throw new Error("Authentication token not available");
 
