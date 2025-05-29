@@ -81,6 +81,12 @@ export interface QuestionsListResponseFlat {
   totalCount: number;
   currentPage: number;
   totalPages: number;
+  pagination?: {
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+  };
 }
 
 export function isStatementBasedQuestion(
@@ -179,31 +185,89 @@ class QuestionAdminService {
 
     const result = await response.json();
 
-    // Transform response structure to ensure consistency
+    // ✅ CORRECTED: Enhanced response handling to support both old and new API structures
+    let normalizedData: QuestionsListResponseFlat;
+
+    // Check if the API returns the old structure with pagination object
     if (result.data && result.data.pagination) {
-      return {
-        ...result,
-        data: {
-          questions: result.data.questions,
-          totalCount: result.data.pagination.totalCount,
-          currentPage: result.data.pagination.currentPage,
-          totalPages: result.data.pagination.totalPages,
+      // Old structure: { data: { questions: [], pagination: { ... } } }
+      normalizedData = {
+        questions: result.data.questions || [],
+        totalCount: result.data.pagination.total || 0,
+        currentPage: result.data.pagination.page || page,
+        totalPages: result.data.pagination.pages || 1,
+        pagination: result.data.pagination, // Preserve old pagination object
+      };
+    } else if (result.data && Array.isArray(result.data.questions)) {
+      // New flat structure: { data: { questions: [], totalCount: 0, ... } }
+      const totalCount = result.data.totalCount || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+      normalizedData = {
+        questions: result.data.questions,
+        totalCount,
+        currentPage: result.data.currentPage || page,
+        totalPages: result.data.totalPages || totalPages,
+        // ✅ CORRECTED: Create pagination object for backward compatibility
+        pagination: {
+          total: totalCount,
+          page: result.data.currentPage || page,
+          pages: result.data.totalPages || totalPages,
+          limit: limit,
         },
       };
-    } else if (result.data && result.data.questions) {
-      return result;
+    } else if (Array.isArray(result.questions)) {
+      // Direct structure: { questions: [], totalCount: 0, ... }
+      const totalCount = result.totalCount || result.total || 0;
+      const totalPages =
+        result.totalPages || result.pages || Math.ceil(totalCount / limit);
+      normalizedData = {
+        questions: result.questions,
+        totalCount,
+        currentPage: result.currentPage || result.page || page,
+        totalPages,
+        // ✅ CORRECTED: Create pagination object for backward compatibility
+        pagination: {
+          total: totalCount,
+          page: result.currentPage || result.page || page,
+          pages: totalPages,
+          limit: limit,
+        },
+      };
     } else {
-      return {
-        status: "success",
-        message: "Questions retrieved successfully",
-        data: {
-          questions: result.questions || result.data || [],
-          totalCount: result.totalCount || result.total || 0,
-          currentPage: result.currentPage || result.page || page,
-          totalPages: result.totalPages || result.pages || 1,
+      // ✅ CORRECTED: Fallback with comprehensive pagination object creation
+      const totalCount =
+        result.data?.totalCount ||
+        result.totalCount ||
+        result.total ||
+        (result.data?.questions || result.questions || []).length;
+      const totalPages =
+        result.data?.totalPages ||
+        result.totalPages ||
+        result.pages ||
+        Math.ceil(totalCount / limit);
+      const currentPage =
+        result.data?.currentPage || result.currentPage || result.page || page;
+
+      normalizedData = {
+        questions: result.data?.questions || result.questions || [],
+        totalCount,
+        currentPage,
+        totalPages,
+        // ✅ CORRECTED: Always create pagination object for backward compatibility
+        pagination: result.data?.pagination || {
+          total: totalCount,
+          page: currentPage,
+          pages: totalPages,
+          limit: limit,
         },
       };
     }
+
+    return {
+      status: "success",
+      message: "Questions retrieved successfully",
+      data: normalizedData,
+    };
   }
 
   async getQuestionById(
