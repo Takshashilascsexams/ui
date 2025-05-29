@@ -130,7 +130,7 @@ export default function FeedbacksSection({ feedbacks }: FeedbacksSectionProps) {
         {/* Call to action */}
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm mb-4">
-            Join thousands of satisfied students who have achieved their goals
+            Join hundreds of satisfied students who have achieved their goals
             with us
           </p>
           <Link

@@ -1,3 +1,6 @@
+// ============= SYNCHRONIZED CREATE QUESTION FORM =============
+"use client";
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -5,15 +8,18 @@ import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Label } from "../ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   difficultyLevel,
   marks,
   negativeMarks,
   questionTypes,
 } from "@/utils/arrays";
+import questionAdminService, {
+  QuestionFormValues,
+} from "@/services/adminQuestions.services";
 import {
   Form,
   FormControl,
@@ -29,183 +35,138 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import getClerkToken from "@/actions/client/getClerkToken";
 
-export const addNewTestFormSchema = z
-  .object({
-    examId: z.string(),
-    questionText: z
-      .string()
-      .min(10, {
-        message: "A question must have at least 10 characters.",
+// ============= SHARED SCHEMA DEFINITIONS =============
+// Using the same discriminated union approach as update form
+const mcqQuestionSchema = z.object({
+  examId: z.string().min(1, { message: "Exam ID is required" }),
+  questionText: z
+    .string()
+    .min(10, {
+      message: "Question text must be at least 10 characters.",
+    })
+    .max(500, { message: "Question text must be less than 500 characters" }),
+  type: z.literal("MCQ"),
+  difficultyLevel: z.enum(["EASY", "MEDIUM", "HARD"]),
+  subject: z.string().min(1, {
+    message: "Subject is required",
+  }),
+  marks: z.string(),
+  hasNegativeMarking: z.enum(["Yes", "No"]),
+  negativeMarks: z.string(),
+  correctAnswer: z.string().min(1, {
+    message: "Correct answer is required",
+  }),
+  questionCode: z.string().optional(),
+  options: z
+    .array(
+      z.object({
+        optionText: z.string().min(1, { message: "Option text is required" }),
+        isCorrect: z.boolean(),
       })
-      .max(500, { message: "A question must be less than 500 characters" }),
-    type: z.enum(questionTypes as [string, ...string[]], {
-      message: "Invalid option selection.",
-    }),
-    optionA: z.string(),
-    optionB: z.string(),
-    optionC: z.string(),
-    optionD: z.string(),
-    statement1: z.string(),
-    statement2: z.string(),
-    statement3: z.string(),
-    statement4: z.string(),
-    statementInstruction: z.string(),
-    correctAnswer: z.string().min(1, { message: "Correct answer is required" }),
-    explanation: z.string(),
-    marks: z.enum(marks as [string, ...string[]], {
-      message: "Invalid option selection.",
-    }),
-    difficultyLevel: z.enum(difficultyLevel as [string, ...string[]], {
-      message: "Invalid option selection.",
-    }),
-    subject: z.string(),
-    hasNegativeMarking: z.enum(["Yes", "No"], {
-      message: "Invalid option selection.",
-    }),
-    negativeMarks: z.string().refine(
-      (val) => {
-        const numVal = parseFloat(val);
-        return (
-          !isNaN(numVal) && (numVal === 0 || numVal === 0.25 || numVal === 0.5)
-        );
-      },
-      {
-        message: "Negative marking value must be either 0, 0.25 or 0.5.",
-      }
-    ),
-    image: z
-      .instanceof(File)
-      .optional()
-      .refine(
-        (file) => {
-          if (!file) return true;
-          // Check file size (limit to 5MB)
-          return file.size <= 5 * 1024 * 1024;
-        },
-        {
-          message: "Image must be less than 5MB",
-        }
-      )
-      .refine(
-        (file) => {
-          if (!file) return true;
-          // Check file type
-          return [
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp",
-          ].includes(file.type);
-        },
-        {
-          message: "Only JPG, PNG, GIF, and WebP image formats are allowed",
-        }
-      ),
-  })
-  .superRefine((data, ctx) => {
-    // Check if statementInstruction is required for STATEMENT_BASED questions
-    if (data.type === "STATEMENT_BASED") {
-      if (
-        !data.statementInstruction ||
-        data.statementInstruction.trim().length === 0
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            "Statement instruction is required for statement-based questions",
-          path: ["statementInstruction"],
-        });
-      }
+    )
+    .min(2, { message: "At least 2 options are required" }),
+  explanation: z.string().min(1, {
+    message: "Explanation is required",
+  }),
+  image: z.string().optional(),
+});
 
-      // Check if at least 2 statements are provided for STATEMENT_BASED questions
-      let validStatementCount = 0;
-      if (data.statement1 && data.statement1.trim().length > 0)
-        validStatementCount++;
-      if (data.statement2 && data.statement2.trim().length > 0)
-        validStatementCount++;
-      if (data.statement3 && data.statement3.trim().length > 0)
-        validStatementCount++;
-      if (data.statement4 && data.statement4.trim().length > 0)
-        validStatementCount++;
+const statementQuestionSchema = z.object({
+  examId: z.string().min(1, { message: "Exam ID is required" }),
+  questionText: z
+    .string()
+    .min(10, {
+      message: "Question text must be at least 10 characters.",
+    })
+    .max(500, { message: "Question text must be less than 500 characters" }),
+  type: z.literal("STATEMENT_BASED"),
+  difficultyLevel: z.enum(["EASY", "MEDIUM", "HARD"]),
+  subject: z.string().min(1, {
+    message: "Subject is required",
+  }),
+  marks: z.string(),
+  hasNegativeMarking: z.enum(["Yes", "No"]),
+  negativeMarks: z.string(),
+  correctAnswer: z.string().min(1, {
+    message: "Correct answer is required",
+  }),
+  questionCode: z.string().optional(),
+  statementInstruction: z.string().min(1, {
+    message: "Statement instruction is required",
+  }),
+  statements: z
+    .array(
+      z.object({
+        statementNumber: z.number(),
+        statementText: z
+          .string()
+          .min(1, { message: "Statement text is required" }),
+        isCorrect: z.boolean(),
+      })
+    )
+    .min(2, { message: "At least 2 statements are required" }),
+  options: z.array(
+    z.object({
+      optionText: z.string().min(1, { message: "Option text is required" }),
+      isCorrect: z.boolean(),
+    })
+  ),
+  explanation: z.string().min(1, {
+    message: "Explanation is required",
+  }),
+  image: z.string().optional(),
+});
 
-      if (validStatementCount < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            "At least 2 statements are required for statement-based questions",
-          path: ["statement1"], // We'll show the error on statement1 field
-        });
-      }
-    }
+const createQuestionFormSchema = z.discriminatedUnion("type", [
+  mcqQuestionSchema,
+  statementQuestionSchema,
+]);
 
-    // Check if all options are provided for MCQ questions
-    if (data.type === "MCQ") {
-      if (!data.optionA || data.optionA.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Option A is required for MCQ questions",
-          path: ["optionA"],
-        });
-      }
+type CreateFormValues = z.infer<typeof createQuestionFormSchema>;
 
-      if (!data.optionB || data.optionB.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Option B is required for MCQ questions",
-          path: ["optionB"],
-        });
-      }
+interface CreateQuestionFormProps {
+  defaultExamId?: string;
+  onSuccess?: () => void;
+}
 
-      if (!data.optionC || data.optionC.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Option C is required for MCQ questions",
-          path: ["optionC"],
-        });
-      }
-
-      if (!data.optionD || data.optionD.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Option D is required for MCQ questions",
-          path: ["optionD"],
-        });
-      }
-    }
-  });
-
-export default function CreateExamForm() {
+export default function CreateQuestionForm({
+  defaultExamId = "",
+  onSuccess,
+}: CreateQuestionFormProps) {
   const [isSubmittingForm, setIsSubmittingForm] = useState<boolean>(false);
-  const [currentQuestionType, setCurrentQuestionType] = useState("MCQ");
+  const [currentQuestionType, setCurrentQuestionType] = useState<
+    "MCQ" | "STATEMENT_BASED"
+  >("MCQ");
 
-  const form = useForm<z.infer<typeof addNewTestFormSchema>>({
-    resolver: zodResolver(addNewTestFormSchema),
+  const form = useForm<CreateFormValues>({
+    resolver: zodResolver(createQuestionFormSchema),
     defaultValues: {
-      examId: "",
+      examId: defaultExamId,
       questionText: "",
-      type: questionTypes[0],
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      statement1: "",
-      statement2: "",
-      statement3: "",
-      statement4: "",
-      statementInstruction: "",
-      correctAnswer: "",
-      explanation: "",
-      marks: marks[0],
-      difficultyLevel: difficultyLevel[1],
+      type: "MCQ",
+      difficultyLevel: "MEDIUM",
       subject: "",
+      marks: "1",
       hasNegativeMarking: "No",
-      negativeMarks: negativeMarks[0],
-    },
+      negativeMarks: "0",
+      correctAnswer: "",
+      questionCode: "",
+      explanation: "",
+      image: "",
+      options: [
+        { optionText: "", isCorrect: false },
+        { optionText: "", isCorrect: false },
+        { optionText: "", isCorrect: false },
+        { optionText: "", isCorrect: false },
+      ],
+      // Statement-based defaults
+      statementInstruction: "",
+      statements: [],
+    } as CreateFormValues,
   });
 
-  // Watch for changes to questionType
+  // Watch for changes to question type
   const watchQuestionType = form.watch("type");
 
   // Update state when question type changes
@@ -215,134 +176,137 @@ export default function CreateExamForm() {
     }
   }, [watchQuestionType]);
 
-  const onSubmit = async (values: z.infer<typeof addNewTestFormSchema>) => {
+  // Handle adding a new option
+  const handleAddOption = () => {
+    const currentOptions = form.getValues("options");
+    form.setValue("options", [
+      ...currentOptions,
+      { optionText: "", isCorrect: false },
+    ]);
+  };
+
+  // Handle removing an option
+  const handleRemoveOption = (index: number) => {
+    const currentOptions = form.getValues("options");
+    if (currentOptions.length <= 2) {
+      toast.error("At least 2 options are required");
+      return;
+    }
+
+    form.setValue(
+      "options",
+      currentOptions.filter((_, i) => i !== index)
+    );
+  };
+
+  // Handle adding a new statement
+  const handleAddStatement = () => {
+    const currentStatements = form.getValues("statements") || [];
+    form.setValue("statements", [
+      ...currentStatements,
+      {
+        statementNumber: currentStatements.length + 1,
+        statementText: "",
+        isCorrect: false,
+      },
+    ]);
+  };
+
+  // Handle removing a statement
+  const handleRemoveStatement = (index: number) => {
+    const currentStatements = form.getValues("statements") || [];
+    if (currentStatements.length <= 2) {
+      toast.error("At least 2 statements are required");
+      return;
+    }
+
+    const updatedStatements = currentStatements
+      .filter((_, i) => i !== index)
+      .map((stmt, i) => ({ ...stmt, statementNumber: i + 1 }));
+
+    form.setValue("statements", updatedStatements);
+  };
+
+  // Reset form for question type change
+  const resetFormForType = (type: string) => {
+    if (type === "STATEMENT_BASED") {
+      // Initialize statements if switching to statement-based
+      if (
+        !form.getValues("statements") ||
+        form.getValues("statements").length === 0
+      ) {
+        form.setValue("statements", [
+          { statementNumber: 1, statementText: "", isCorrect: false },
+          { statementNumber: 2, statementText: "", isCorrect: false },
+        ]);
+        form.setValue(
+          "statementInstruction",
+          "How many of the above statements is/are correct?"
+        );
+      }
+    }
+  };
+
+  const onSubmit = async (values: CreateFormValues) => {
     try {
       setIsSubmittingForm(true);
 
-      // Format options as an array of objects with optionText and isCorrect properties
-      const options = [];
-      const correctOption = values.correctAnswer;
-
-      // Add options if they exist
-      if (values.optionA) {
-        options.push({
-          optionText: values.optionA,
-          isCorrect: correctOption === "a",
-        });
+      // Validate at least one option is marked as correct
+      const hasCorrectOption = values.options.some(
+        (option) => option.isCorrect
+      );
+      if (!hasCorrectOption) {
+        toast.error("Please mark at least one option as correct");
+        return;
       }
 
-      if (values.optionB) {
-        options.push({
-          optionText: values.optionB,
-          isCorrect: correctOption === "b",
-        });
-      }
-
-      if (values.optionC) {
-        options.push({
-          optionText: values.optionC,
-          isCorrect: correctOption === "c",
-        });
-      }
-
-      if (values.optionD) {
-        options.push({
-          optionText: values.optionD,
-          isCorrect: correctOption === "d",
-        });
-      }
-
-      // Format statements as an array of objects with statementNumber, statementText, and isCorrect properties
-      const statements = [];
-
-      // Only add statements if we have STATEMENT_BASED question type
+      // Validate statements for statement-based questions
       if (values.type === "STATEMENT_BASED") {
-        // Parse the correctAnswer field to determine which statements are correct
-        // Example: if correctAnswer is "1,3" then statements 1 and 3 are correct
-        const correctStatements = values.correctAnswer
-          .split(",")
-          .map((num) => num.trim());
-
-        if (values.statement1) {
-          statements.push({
-            statementNumber: 1,
-            statementText: values.statement1,
-            isCorrect: correctStatements.includes("1"),
-          });
-        }
-
-        if (values.statement2) {
-          statements.push({
-            statementNumber: 2,
-            statementText: values.statement2,
-            isCorrect: correctStatements.includes("2"),
-          });
-        }
-
-        if (values.statement3) {
-          statements.push({
-            statementNumber: 3,
-            statementText: values.statement3,
-            isCorrect: correctStatements.includes("3"),
-          });
-        }
-
-        if (values.statement4) {
-          statements.push({
-            statementNumber: 4,
-            statementText: values.statement4,
-            isCorrect: correctStatements.includes("4"),
-          });
+        const hasCorrectStatement = values.statements?.some(
+          (statement) => statement.isCorrect
+        );
+        if (!hasCorrectStatement) {
+          toast.error("Please mark at least one statement as correct");
+          return;
         }
       }
 
-      // Get auth token
-      const clerkToken = await getClerkToken();
-
-      // Build the payload according to your backend API requirements
-      const payload = {
-        examId: values.examId,
-        questionText: values.questionText,
-        type: values.type,
-        options: options,
-        statements: statements,
-        statementInstruction:
-          values.type === "STATEMENT_BASED" ? values.statementInstruction : "",
-        marks: parseInt(values.marks),
-        difficultyLevel: values.difficultyLevel,
-        subject: values.subject,
-        hasNegativeMarking: values.hasNegativeMarking === "Yes",
-        negativeMarks: parseFloat(values.negativeMarks),
-        explanation: values.explanation,
-        image: "",
-        correctAnswer: values.correctAnswer,
-      };
-
-      const URI = `${process.env.NEXT_PUBLIC_API_URL}/questions/single-upload`;
-      const body = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${clerkToken}`,
-        },
-        body: JSON.stringify(payload),
-      };
-
-      // Send the payload to your backend API
-      const response = await fetch(URI, body);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create question");
-      }
-
-      await response.json();
+      // Use the service method which handles transformation
+      await questionAdminService.createQuestion(
+        values as QuestionFormValues & { examId: string }
+      );
 
       // Reset the form after successful submission
-      form.reset();
+      form.reset({
+        examId: defaultExamId,
+        questionText: "",
+        type: "MCQ",
+        difficultyLevel: "MEDIUM",
+        subject: "",
+        marks: "1",
+        hasNegativeMarking: "No",
+        negativeMarks: "0",
+        correctAnswer: "",
+        questionCode: "",
+        explanation: "",
+        image: "",
+        options: [
+          { optionText: "", isCorrect: false },
+          { optionText: "", isCorrect: false },
+          { optionText: "", isCorrect: false },
+          { optionText: "", isCorrect: false },
+        ],
+        statementInstruction: "",
+        statements: [],
+      } as CreateFormValues);
 
       // Show success message
       toast.success("Question created successfully");
+
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error creating question:", error);
       toast.error(
@@ -362,18 +326,18 @@ export default function CreateExamForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full flex flex-col items-center justify-center gap-5"
         >
-          {/* Exam id */}
+          {/* Exam ID */}
           <FormField
             control={form.control}
             name="examId"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
-                  Exam Id <span className="text-red-500">*</span>
+                  Exam ID <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter exam Id"
+                    placeholder="Enter exam ID"
                     className="text-sm"
                     {...field}
                   />
@@ -383,20 +347,19 @@ export default function CreateExamForm() {
             )}
           />
 
-          {/* Question */}
+          {/* Question Text */}
           <FormField
             control={form.control}
             name="questionText"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
-                  Question
-                  <span className="text-red-500">*</span>
+                  Question Text <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Enter question text"
-                    className="text-sm"
+                    placeholder="Enter the question text"
+                    className="min-h-[100px]"
                     {...field}
                   />
                 </FormControl>
@@ -405,22 +368,22 @@ export default function CreateExamForm() {
             )}
           />
 
-          {/* question type */}
+          {/* Question Type */}
           <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
-                  Question type
-                  <span className="text-red-500">*</span>
+                  Question Type <span className="text-red-500">*</span>
                 </FormLabel>
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    setCurrentQuestionType(value);
+                    setCurrentQuestionType(value as "MCQ" | "STATEMENT_BASED");
+                    resetFormForType(value);
                   }}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -428,13 +391,11 @@ export default function CreateExamForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {questionTypes.map((value, index) => {
-                      return (
-                        <SelectItem value={value} key={index}>
-                          {value}
-                        </SelectItem>
-                      );
-                    })}
+                    {questionTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type === "MCQ" ? "Multiple Choice" : "Statement Based"}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -442,227 +403,148 @@ export default function CreateExamForm() {
             )}
           />
 
-          {/* Statements holder - Show only when STATEMENT_BASED is selected */}
-          <div
-            className={`w-full transition-all duration-300 ease-in-out ${
-              currentQuestionType === "STATEMENT_BASED"
-                ? "max-h-[1000px] opacity-100"
-                : "max-h-0 opacity-0 overflow-hidden"
-            }`}
-          >
-            <p className="text-sm font-medium">Set statements</p>
-            <div className="w-full mt-3 flex flex-col items-center justify-center gap-5">
-              {/* Statement 1*/}
-              <FormField
-                control={form.control}
-                name="statement1"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Statement 1 <span className="text-red-500">*</span>
-                    </FormLabel>
+          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Difficulty Level */}
+            <FormField
+              control={form.control}
+              name="difficultyLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Difficulty Level <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Textarea
-                        placeholder="Set statement 1"
-                        className="text-sm"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {difficultyLevel.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* Statement 2 */}
-              <FormField
-                control={form.control}
-                name="statement2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Statement 2 <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Set statement 2"
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Subject */}
+            <FormField
+              control={form.control}
+              name="subject"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Subject <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter subject" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* Statement 3 */}
-              <FormField
-                control={form.control}
-                name="statement3"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Statement 3 <span className="text-red-500">*</span>
-                    </FormLabel>
+            {/* Marks */}
+            <FormField
+              control={form.control}
+              name="marks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Marks <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Textarea
-                        placeholder="Set statement 3"
-                        className="text-sm"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select marks" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Statement 4 */}
-              <FormField
-                control={form.control}
-                name="statement4"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Statement 4<span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Set statement 4"
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Statement instruction */}
-              <FormField
-                control={form.control}
-                name="statementInstruction"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Statement instruction{" "}
-                      <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter the statement instruction. e.g - Choose the correct statement."
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      {marks.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          {/* Options holder - Show only when MCQ is selected */}
-          <div className={`w-full transition-all duration-300 ease-in-out`}>
-            <p className="text-sm font-medium">Set options</p>
-            <div className="w-full mt-3 flex flex-col items-center justify-center gap-5">
-              {/* Option a */}
-              <FormField
-                control={form.control}
-                name="optionA"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Option A <span className="text-red-500">*</span>
-                    </FormLabel>
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Has Negative Marking */}
+            <FormField
+              control={form.control}
+              name="hasNegativeMarking"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Has Negative Marking <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Input
-                        placeholder="Set option A"
-                        className="text-sm"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select option" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* Option B */}
-              <FormField
-                control={form.control}
-                name="optionB"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Option B <span className="text-red-500">*</span>
-                    </FormLabel>
+            {/* Negative Marks */}
+            <FormField
+              control={form.control}
+              name="negativeMarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Negative Marks <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Input
-                        placeholder="Set option B"
-                        className="text-sm"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select negative marks" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Option C */}
-              <FormField
-                control={form.control}
-                name="optionC"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Option C <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Set option C"
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Option D */}
-              <FormField
-                control={form.control}
-                name="optionD"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Option D <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Set option D"
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      {negativeMarks.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          {/* Correct answer */}
+          {/* Correct Answer */}
           <FormField
             control={form.control}
             name="correctAnswer"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
-                  Answer <span className="text-red-500">*</span>
+                  Correct Answer <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Assign the correct answer. e.g - a"
-                    className="text-sm"
+                    placeholder="Enter correct answer (e.g., 'a' for MCQ or '1,3' for statements)"
                     {...field}
                   />
                 </FormControl>
@@ -670,20 +552,250 @@ export default function CreateExamForm() {
               </FormItem>
             )}
           />
+
+          {/* Question Code */}
+          <FormField
+            control={form.control}
+            name="questionCode"
+            render={({ field }) => (
+              <FormItem className="w-full">
+                <FormLabel>
+                  Question Code <span>(Optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter question code (e.g., Q001)"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Image URL */}
+          <FormField
+            control={form.control}
+            name="image"
+            render={({ field }) => (
+              <FormItem className="w-full">
+                <FormLabel>
+                  Image URL <span>(Optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter image URL" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Statement Instructions - Show only for STATEMENT_BASED */}
+          {currentQuestionType === "STATEMENT_BASED" && (
+            <FormField
+              control={form.control}
+              name="statementInstruction"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel>
+                    Statement Instruction{" "}
+                    <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="E.g., How many of the above statements is/are correct?"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {/* Statements Section - Only for STATEMENT_BASED */}
+          {currentQuestionType === "STATEMENT_BASED" && (
+            <div className="w-full space-y-4">
+              <div className="flex justify-between items-center">
+                <FormLabel>
+                  Statements <span className="text-red-500">*</span>
+                </FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddStatement}
+                  className="flex items-center"
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Add Statement
+                </Button>
+              </div>
+
+              {form.watch("statements")?.map((_, index) => (
+                <div
+                  key={`statement-${index}`}
+                  className="flex gap-4 items-start w-full"
+                >
+                  <div className="flex-1">
+                    <FormField
+                      control={form.control}
+                      name={`statements.${index}.statementText`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex gap-2 items-center">
+                            <span className="font-medium">
+                              Statement {index + 1}:
+                            </span>
+                          </div>
+                          <FormControl>
+                            <Textarea
+                              placeholder={`Enter statement ${index + 1}`}
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="pt-7 flex items-center gap-2">
+                    <FormField
+                      control={form.control}
+                      name={`statements.${index}.isCorrect`}
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm font-normal">
+                            Correct
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => handleRemoveStatement(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Options Section */}
+          <div className="w-full space-y-4">
+            <div className="flex justify-between items-center">
+              <FormLabel>
+                Options <span className="text-red-500">*</span>
+              </FormLabel>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddOption}
+                className="flex items-center"
+              >
+                <Plus className="mr-1 h-4 w-4" /> Add Option
+              </Button>
+            </div>
+
+            {form.watch("options").map((_, index) => (
+              <div
+                key={`option-${index}`}
+                className="flex gap-4 items-start w-full"
+              >
+                <div className="flex-1">
+                  <FormField
+                    control={form.control}
+                    name={`options.${index}.optionText`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex gap-2 items-center">
+                          <span className="font-medium">
+                            Option {String.fromCharCode(97 + index)}:
+                          </span>
+                        </div>
+                        <FormControl>
+                          <Input
+                            placeholder={`Enter option ${String.fromCharCode(
+                              97 + index
+                            )}`}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="pt-7 flex items-center gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`options.${index}.isCorrect`}
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              if (currentQuestionType === "MCQ" && checked) {
+                                // For MCQ, only one option can be correct
+                                form.setValue(
+                                  "options",
+                                  form.getValues("options").map((opt, i) => ({
+                                    ...opt,
+                                    isCorrect: i === index,
+                                  }))
+                                );
+                              } else {
+                                field.onChange(checked);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Correct
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => handleRemoveOption(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {/* Explanation */}
           <FormField
             control={form.control}
             name="explanation"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>
-                  Explanation <span>(Optional)</span>
+                  Explanation <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Enter explanation for the answer"
-                    className="text-sm"
+                    placeholder="Enter explanation for the correct answer"
+                    className="min-h-[100px]"
                     {...field}
                   />
                 </FormControl>
@@ -692,215 +804,19 @@ export default function CreateExamForm() {
             )}
           />
 
-          {/* marks */}
-          <FormField
-            control={form.control}
-            name="marks"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Marks
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign marks" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {marks.map((value, index) => {
-                      return (
-                        <SelectItem value={value} key={index}>
-                          {value}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* difficulty level */}
-          <FormField
-            control={form.control}
-            name="difficultyLevel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Difficulty level
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select dificulty level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {difficultyLevel.map((value, index) => {
-                      return (
-                        <SelectItem value={value} key={index}>
-                          {value}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* subject */}
-          <FormField
-            control={form.control}
-            name="subject"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  {"Parent subject of the question"}
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter subject of the question"
-                    className="text-sm"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* negative marking option */}
-          <FormField
-            control={form.control}
-            name="hasNegativeMarking"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Has negative marking
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select yes or no" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {["Yes", "No"].map((value, index) => {
-                      return (
-                        <SelectItem value={value} key={index}>
-                          {value}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* negative marks */}
-          <FormField
-            control={form.control}
-            name="negativeMarks"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Negative marking value
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select negative marking value" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {negativeMarks.map((value, index) => {
-                      return (
-                        <SelectItem value={value} key={index}>
-                          {value}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Image */}
-          <FormField
-            control={form.control}
-            name="image"
-            render={({ field }) => (
-              <FormItem>
-                <Label htmlFor="image">Question image (Optional)</Label>
-                <FormControl>
-                  <Input
-                    type="file"
-                    id="image"
-                    disabled
-                    className="text-sm"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={async (e) => {
-                      if (e.target.files?.[0] === undefined) {
-                        return;
-                      }
-
-                      const file = e.target.files?.[0];
-                      field.onChange(file);
-
-                      if (file.size > 5 * 1024 * 1024) {
-                        toast.warning("Image must be less than 5MB");
-                        field.onChange(undefined);
-                        return;
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* create button */}
+          {/* Submit Button */}
           <Button
             type="submit"
-            disabled={
-              Object.keys(form.formState.dirtyFields).length < 8 ||
-              isSubmittingForm
-            }
+            disabled={isSubmittingForm}
             className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition disabled:bg-indigo-500 disabled:cursor-not-allowed"
           >
             {isSubmittingForm ? (
               <>
-                <Loader2 className="animate-spin" />
-                creating
+                <Loader2 className="animate-spin mr-2" />
+                Creating...
               </>
             ) : (
-              "Create"
+              "Create Question"
             )}
           </Button>
         </form>

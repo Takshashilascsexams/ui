@@ -131,12 +131,9 @@ async function RecentActivityContent() {
         </div>
 
         <div className="max-h-[400px] overflow-y-auto">
-          {activities.map((activity, index) => (
-            <ActivityItem
-              key={activity.id || `activity-${index}`}
-              activity={activity}
-            />
-          ))}
+          {activities.map((activity) => {
+            return <ActivityItem key={activity.id} activity={activity} />;
+          })}
         </div>
 
         {/* Activity summary footer */}
