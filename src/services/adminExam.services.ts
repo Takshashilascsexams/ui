@@ -396,6 +396,63 @@ class ExamAdminService {
 
     return await response.json();
   }
+
+  /**
+   * Change exam attempt status from in-progress to completed
+   * @param {string} attemptId - The ID of the exam attempt
+   * @returns {Promise<Object>} Response from the API
+   */
+
+  async changeAttemptStatus(attemptId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/admin-change-status/${attemptId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to change exam attempt status");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Delete exam attempt
+   * @param {string} attemptId - The ID of the exam attempt
+   * @returns {Promise<Object>} Response from the API
+   */
+  async deleteExamAttempt(attemptId: string) {
+    const token = await getClerkToken();
+    if (!token) throw new Error("Authentication token not available");
+
+    const response = await fetch(
+      `${this.apiUrl}/exam-attempt/admin-delete/${attemptId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete exam attempt");
+    }
+
+    return await response.json();
+  }
 }
 
 // Export as singleton

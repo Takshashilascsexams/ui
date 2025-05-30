@@ -62,14 +62,6 @@ export default function FeedbacksSection({ feedbacks }: FeedbacksSectionProps) {
             <MessageSquare className="mr-2 h-5 w-5 text-green-600" />
             Student Testimonials
           </h2>
-          {feedbacks.length > 3 && (
-            <Link
-              href="/feedbacks"
-              className="text-sm text-[#2E4057] font-semibold opacity-80 hover:opacity-100"
-            >
-              View All
-            </Link>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
