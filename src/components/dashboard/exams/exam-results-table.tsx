@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import examAdminService from "@/services/adminExam.services";
 import {
   Table,
   TableBody,
@@ -44,7 +45,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import examAdminService from "@/services/adminExam.services";
 import {
   Eye,
   Search,
@@ -53,6 +53,8 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Loader2,
+  CheckCircle,
+  Trash2,
 } from "lucide-react";
 
 // Define student result type based on API response
@@ -225,6 +227,12 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
   const [recalculatingAttempts, setRecalculatingAttempts] = useState<
     Set<string>
   >(new Set());
+  const [changingStatusAttempts, setChangingStatusAttempts] = useState<
+    Set<string>
+  >(new Set());
+  const [deletingAttempts, setDeletingAttempts] = useState<Set<string>>(
+    new Set()
+  );
 
   // Fetch results from API
   useEffect(() => {
@@ -348,6 +356,119 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
     } finally {
       // Remove from recalculating set
       setRecalculatingAttempts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(attemptId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle attempt status change
+  const handleChangeAttemptStatus = async (
+    attemptId: string,
+    studentName: string
+  ) => {
+    try {
+      // Add to changing status set
+      setChangingStatusAttempts((prev) => new Set(prev).add(attemptId));
+
+      const response = await examAdminService.changeAttemptStatus(attemptId);
+
+      if (response.status === "success") {
+        const { newStatus, calculatedResults } = response.data;
+
+        // Update the specific result in state
+        setStudentResults((prev) =>
+          prev.map((result) =>
+            result.id === attemptId
+              ? {
+                  ...result,
+                  status: newStatus,
+                  completedAt: new Date().toISOString(),
+                  // Update other fields if results were calculated
+                  ...(calculatedResults && {
+                    score: parseFloat(calculatedResults.scorePercentage),
+                    hasPassed: calculatedResults.hasPassed,
+                    correctAnswers: calculatedResults.correctAnswers,
+                    wrongAnswers: calculatedResults.wrongAnswers,
+                    unanswered: calculatedResults.unattempted,
+                  }),
+                }
+              : result
+          )
+        );
+
+        toast.success(`Status changed successfully for ${studentName}`, {
+          description: `Status changed to: ${newStatus}${
+            calculatedResults
+              ? ` | Score: ${calculatedResults.scorePercentage}%`
+              : ""
+          }`,
+        });
+      } else {
+        toast.error(`Failed to change status for ${studentName}`, {
+          description: response.message || "Unknown error occurred",
+        });
+      }
+    } catch (error) {
+      console.error("Error changing attempt status:", error);
+      toast.error(`Failed to change status for ${studentName}`, {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      // Remove from changing status set
+      setChangingStatusAttempts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(attemptId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle delete exam attempt
+  const handleDeleteAttempt = async (
+    attemptId: string,
+    studentName: string
+  ) => {
+    try {
+      // Add to deleting set
+      setDeletingAttempts((prev) => new Set(prev).add(attemptId));
+
+      const response = await examAdminService.deleteExamAttempt(attemptId);
+
+      if (response.status === "success") {
+        const { deletedAttempt } = response.data;
+
+        // Remove the attempt from the state
+        setStudentResults((prev) =>
+          prev.filter((result) => result.id !== attemptId)
+        );
+
+        // Update pagination total
+        setPagination((prev) => ({
+          ...prev,
+          total: prev.total - 1,
+          pages: Math.ceil((prev.total - 1) / prev.limit),
+        }));
+
+        toast.success(`Attempt deleted successfully for ${studentName}`, {
+          description: `Deleted attempt from exam: ${deletedAttempt.examTitle}`,
+        });
+      } else {
+        toast.error(`Failed to delete attempt for ${studentName}`, {
+          description: response.message || "Unknown error occurred",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting attempt:", error);
+      toast.error(`Failed to delete attempt for ${studentName}`, {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      // Remove from deleting set
+      setDeletingAttempts((prev) => {
         const newSet = new Set(prev);
         newSet.delete(attemptId);
         return newSet;
@@ -611,6 +732,8 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
                       {formatTimeSpent(result.timeSpent)}
                     </div>
                   </TableCell>
+
+                  {/* Actions table cell */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-center gap-2">
                       <TooltipProvider>
@@ -635,7 +758,81 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
                         </Tooltip>
                       </TooltipProvider>
 
-                      {/* Recalculate Button */}
+                      {/* Change Status Button - Only show for in-progress attempts */}
+                      {result.status === "in-progress" && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    disabled={changingStatusAttempts.has(
+                                      result.id
+                                    )}
+                                  >
+                                    {changingStatusAttempts.has(result.id) ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Change Attempt Status
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will change the status of{" "}
+                                      <strong>{result.studentName}</strong>
+                                      &#39;s attempt from{" "}
+                                      <strong>In Progress</strong> to{" "}
+                                      <strong>Completed</strong>.
+                                      <br />
+                                      <br />
+                                      The attempt will be marked as completed
+                                      and if no results have been calculated
+                                      yet, they will be automatically calculated
+                                      based on the current answers.
+                                      <br />
+                                      <br />
+                                      <span className="text-sm text-gray-600">
+                                        Current Status: In Progress | Questions
+                                        Attempted: {result.questionsAttempted}/
+                                        {result.totalQuestions}
+                                      </span>
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleChangeAttemptStatus(
+                                          result.id,
+                                          result.studentName
+                                        )
+                                      }
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      Change to Completed
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">
+                              Mark as Completed
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+
+                      {/* Recalculate Button - Only show for completed/timed-out attempts */}
                       {canRecalculate(result) && (
                         <TooltipProvider>
                           <Tooltip>
@@ -710,6 +907,91 @@ export default function ExamResultsTable({ examId }: ExamResultsTableProps) {
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                      {/* Delete Button - Show for all attempts */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  disabled={deletingAttempts.has(result.id)}
+                                >
+                                  {deletingAttempts.has(result.id) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="w-[95vw] max-w-md sm:mx-0 rounded-lg">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Exam Attempt
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription asChild>
+                                    <div>
+                                      <p>
+                                        Are you sure you want to delete{" "}
+                                        <strong>{result.studentName}</strong>
+                                        &#39;s exam attempt?
+                                      </p>
+                                      <p className="mt-2">
+                                        <strong className="text-red-600">
+                                          This action cannot be undone.
+                                        </strong>
+                                      </p>
+                                      <p className="mt-2">
+                                        This will permanently remove:
+                                      </p>
+                                      <ul className="list-disc list-inside mt-2 text-sm space-y-1">
+                                        <li>All answers and responses</li>
+                                        <li>Time spent data</li>
+                                        <li>Score and results (if any)</li>
+                                        <li>Progress information</li>
+                                      </ul>
+                                      <p className="mt-4 text-sm text-gray-600">
+                                        Status: {result.status} | Score:{" "}
+                                        {result.score !== null
+                                          ? `${
+                                              typeof result.score === "number"
+                                                ? result.score.toFixed(1)
+                                                : (
+                                                    parseFloat(
+                                                      String(result.score)
+                                                    ) || 0
+                                                  ).toFixed(1)
+                                            }%`
+                                          : "No score"}
+                                      </p>
+                                    </div>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeleteAttempt(
+                                        result.id,
+                                        result.studentName
+                                      )
+                                    }
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete Permanently
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            Delete Attempt
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>
