@@ -78,15 +78,16 @@ export const testSeriesSectionData = [
 export const latestBlogsSectionData = [
   {
     id: 0,
-    title: "Improving Answer Writing Skills for UPSC Mains Exam.",
-    description: "Learn the best strategies to excel in your exam.",
-    href: "https://takshashilascs.com/improving-answer-writing-skills-for-upsc-mains-exam/",
+    title: "Must know APSC Exam Center Tips for Candidates",
+    description:
+      "Essential tips and guidelines to follow at the APSC exam center for a hassle-free experience.",
+    href: "https://takshashilascs.com/must-know-apsc-exam-center-tips-for-candidates/",
   },
   {
     id: 1,
-    title: "Effective Strategies for UPSC Preparaion",
-    description: "Get access to the best test series for your preparation",
-    href: "https://takshashilascs.com/upsc-preparation-strategy/",
+    title: "Improving Answer Writing Skills for UPSC Mains Exam.",
+    description: "Learn the best strategies to excel in your exam.",
+    href: "https://takshashilascs.com/improving-answer-writing-skills-for-upsc-mains-exam/",
   },
   {
     id: 2,
