@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import examAdminService from "@/services/adminExam.services";
 
+// ✅ SYNCED: Identical schema validation as CreateExamForm
 const editExamFormSchema = z
   .object({
     title: z
@@ -135,19 +136,26 @@ const editExamFormSchema = z
     isPartOfBundle: z.boolean(),
     bundleTag: z.string(),
   })
+  // ✅ SYNCED: Identical validation rules as CreateExamForm
   .refine(
     (data) => {
       const passPercentage = parseInt(data.passMarkPercentage);
       const totalMarks = parseInt(data.totalMarks);
 
-      return (
-        !isNaN(passPercentage) &&
-        !isNaN(totalMarks) &&
-        passPercentage >= totalMarks * 0.35
-      );
+      if (isNaN(passPercentage) || isNaN(totalMarks)) {
+        return false;
+      }
+
+      // Calculate minimum and maximum allowed pass marks
+      const minPassMark = (30 / 100) * totalMarks;
+      const maxPassMark = (50 / 100) * totalMarks;
+      const currentPassMark = (passPercentage / 100) * totalMarks;
+
+      return currentPassMark >= minPassMark && currentPassMark <= maxPassMark;
     },
     {
-      message: "Pass percentage should be at least 35% of total marks.",
+      message:
+        "Pass mark percentage must be between 30% and 50% of total marks.",
       path: ["passMarkPercentage"],
     }
   )
@@ -181,9 +189,8 @@ const editExamFormSchema = z
   )
   .refine(
     (data) => {
-      // Bundle tag is required when isPartOfBundle is true
       if (data.isPartOfBundle) {
-        return data.bundleTag && data.bundleTag.trim().length > 0;
+        return data.bundleTag && data.bundleTag.trim() !== "";
       }
       return true;
     },
@@ -202,6 +209,34 @@ const editExamFormSchema = z
     {
       message: "Please select a valid bundle tag.",
       path: ["bundleTag"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.allowMultipleAttempts) {
+        const maxAttempts = parseInt(data.maxAttempt);
+        return maxAttempts === 1;
+      }
+      return true;
+    },
+    {
+      message:
+        "When multiple attempts are not allowed, maximum attempts should be 1.",
+      path: ["maxAttempt"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.allowMultipleAttempts) {
+        const maxAttempts = parseInt(data.maxAttempt);
+        return maxAttempts > 1;
+      }
+      return true;
+    },
+    {
+      message:
+        "When multiple attempts are allowed, maximum attempts should be greater than 1.",
+      path: ["maxAttempt"],
     }
   );
 
@@ -244,13 +279,6 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
   const isPremium = form.watch("isPremium");
   const isPartOfBundle = form.watch("isPartOfBundle");
   const allowMultipleAttempts = form.watch("allowMultipleAttempts");
-
-  // Effect to handle allowMultipleAttempts changes
-  useEffect(() => {
-    if (!allowMultipleAttempts) {
-      form.setValue("maxAttempt", "1");
-    }
-  }, [allowMultipleAttempts, form]);
 
   // Helper function to determine if exam is part of bundle based on MongoDB data
   const determineIsPartOfBundle = (
@@ -341,6 +369,7 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
     try {
       setIsSubmittingForm(true);
 
+      // ✅ SYNCED: Same data cleaning logic as CreateExamForm
       // If not premium, clear price fields before submitting
       if (values.isPremium === "No") {
         values.price = "";
@@ -356,35 +385,34 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
       // Auto-adjust maxAttempt based on allowMultipleAttempts
       if (!values.allowMultipleAttempts) {
         values.maxAttempt = "1";
-      } else if (values.allowMultipleAttempts && values.maxAttempt === "1") {
-        values.maxAttempt = "2";
       }
 
-      // Transform form values to API expected format
+      // ✅ SYNCED: Send data in same format as CreateExamForm (strings, not transformed)
+      // This matches exactly what CreateExamForm sends and what the controller expects
       const examData = {
         title: values.title,
         description: values.description,
-        duration: parseInt(values.duration),
-        totalQuestions: parseInt(values.totalQuestions),
-        totalMarks: parseInt(values.totalMarks),
-        hasNegativeMarking: values.hasNegativeMarking === "Yes",
-        negativeMarkingValue: parseFloat(values.negativeMarkingValue),
-        passMarkPercentage: parseInt(values.passMarkPercentage),
+        duration: values.duration, // String
+        totalQuestions: values.totalQuestions, // String
+        totalMarks: values.totalMarks, // String
+        hasNegativeMarking: values.hasNegativeMarking, // "Yes"/"No"
+        negativeMarkingValue: values.negativeMarkingValue, // String
+        passMarkPercentage: values.passMarkPercentage, // String
         difficultyLevel: values.difficultyLevel,
         category: values.category,
-        allowNavigation: values.allowNavigation === "Yes",
-        isFeatured: values.isFeatured === "Yes",
-        isPremium: values.isPremium === "Yes",
-        price: values.price ? parseFloat(values.price) : 0,
-        discountPrice: values.discountPrice
-          ? parseFloat(values.discountPrice)
-          : 0,
-        accessPeriod: values.accessPeriod ? parseInt(values.accessPeriod) : 0,
-        isPartOfBundle: values.isPartOfBundle,
-        bundleTag:
-          values.isPartOfBundle && values.bundleTag.trim()
-            ? values.bundleTag.trim()
-            : "",
+        allowNavigation: values.allowNavigation, // "Yes"/"No"
+        // ✅ FIXED: Include missing fields that controller expects
+        allowMultipleAttempts: values.allowMultipleAttempts, // Boolean
+        maxAttempt: values.maxAttempt, // String
+        isFeatured: values.isFeatured, // "Yes"/"No"
+        isPremium: values.isPremium, // "Yes"/"No"
+        price: values.price, // String
+        discountPrice: values.discountPrice, // String
+        accessPeriod: values.accessPeriod, // String
+        // ✅ SYNCED: Simplified bundle handling like CreateExamForm
+        isPartOfBundle: values.isPartOfBundle, // Boolean
+        bundleTag: values.bundleTag, // String
+        // Edit-specific field
         isActive: true,
       };
 
@@ -408,8 +436,6 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
       setIsSubmittingForm(false);
     }
   };
-
-  console.log(form);
 
   if (isLoading) {
     return (
@@ -605,7 +631,7 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Pass mark
+                  Pass mark percentage
                   <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
@@ -713,7 +739,7 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             )}
           />
 
-          {/* Allow Multiple Attempts */}
+          {/* ✅ SYNCED: Allow Multiple Attempts - Same as CreateExamForm */}
           <FormField
             control={form.control}
             name="allowMultipleAttempts"
@@ -722,38 +748,30 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
                 <div className="flex items-center space-x-2">
                   <FormControl>
                     <Checkbox
-                      checked={Boolean(field.value)}
+                      id="allowMultipleAttempts"
+                      checked={field.value}
                       onCheckedChange={(checked) => {
-                        const checkedValue = Boolean(checked);
-                        field.onChange(checkedValue);
-
-                        // Auto-adjust maxAttempt when allowMultipleAttempts changes
-                        if (!checkedValue) {
-                          form.setValue("maxAttempt", "1", {
-                            shouldValidate: true,
-                          });
+                        field.onChange(checked);
+                        // ✅ SYNCED: Auto-adjust maxAttempt when allowMultipleAttempts changes
+                        if (!checked) {
+                          form.setValue("maxAttempt", "1");
                         } else {
-                          // Only set to "2" if current value is "1"
-                          const currentMaxAttempt =
-                            form.getValues("maxAttempt");
-                          if (currentMaxAttempt === "1") {
-                            form.setValue("maxAttempt", "2", {
-                              shouldValidate: true,
-                            });
-                          }
+                          form.setValue("maxAttempt", "2");
                         }
                       }}
                     />
                   </FormControl>
-                  <FormLabel>Allow multiple attempts</FormLabel>
+                  <FormLabel htmlFor="allowMultipleAttempts">
+                    Allow multiple attempts
+                  </FormLabel>
                 </div>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Max Attempt - Show when allowMultipleAttempts is true OR when loading existing data */}
-          {(allowMultipleAttempts || form.getValues("maxAttempt") !== "1") && (
+          {/* ✅ SYNCED: Max Attempt - Same as CreateExamForm */}
+          {allowMultipleAttempts && (
             <FormField
               control={form.control}
               name="maxAttempt"
@@ -766,21 +784,17 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
                   <FormControl>
                     <Input
                       type="number"
-                      min="1"
+                      min="2"
                       max="2"
-                      placeholder="Enter maximum attempts"
+                      placeholder="Enter maximum attempts (2)"
                       className="text-sm"
                       {...field}
-                      disabled={!allowMultipleAttempts}
                     />
                   </FormControl>
                   <FormMessage />
                   <p className="text-xs text-gray-500 mt-1">
-                    {allowMultipleAttempts
-                      ? `Students can attempt this exam up to ${
-                          field.value || "X"
-                        } times`
-                      : "Multiple attempts are disabled - maximum attempts set to 1"}
+                    Students can attempt this exam up to {field.value || "X"}{" "}
+                    times
                   </p>
                 </FormItem>
               )}
@@ -914,27 +928,28 @@ export default function EditExamForm({ examId }: EditExamFormProps) {
             </div>
           )}
 
-          {/* Is part of bundle */}
+          {/* ✅ SYNCED: Is part of bundle - Same as CreateExamForm */}
           <FormField
             control={form.control}
             name="isPartOfBundle"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormItem>
                 <FormControl>
                   <Checkbox
+                    id="isPartOfBundle"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>This exam is part of a bundle</FormLabel>
-                </div>
+                <FormLabel className="ml-2">
+                  This exam is part of a bundle
+                </FormLabel>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Bundle Tag - Select dropdown like in CreateExamForm */}
+          {/* ✅ SYNCED: Bundle Tag - Same as CreateExamForm */}
           {isPartOfBundle && (
             <FormField
               control={form.control}
