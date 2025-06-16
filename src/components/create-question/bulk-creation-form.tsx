@@ -44,7 +44,7 @@ export const addNewTestFormSchema = z.object({
     .refine(
       (file) => ["application/json"].includes(file.type),
       "Only JSON files are allowed"
-    ),
+    ),  
   marks: z.enum(marks as [string, ...string[]], {
     message: "Invalid option selection.",
   }),
@@ -375,7 +375,7 @@ export default function BulkCreationForm({
               <FormItem>
                 <FormLabel>
                   {"Parent subject of the question"}
-                  <span className="text-red-500">*</span>
+                  {/* <span className="text-red-500">*</span> */}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -456,24 +456,6 @@ export default function BulkCreationForm({
               </FormItem>
             )}
           />
-
-          {/* Progress bar */}
-          {/* {isSubmittingForm && (
-            <div className="w-full mt-4">
-              <p className="text-sm mb-1">
-                Uploading questions (Batch {currentBatch} of {totalBatches})
-              </p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {uploadProgress}% complete
-              </p>
-            </div>
-          )} */}
 
           <UploadProgressBar
             isSubmittingForm={isSubmittingForm}

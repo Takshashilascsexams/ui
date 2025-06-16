@@ -29,6 +29,8 @@ interface Question {
   correctAnswer: string;
   statementInstruction: string;
   type: string;
+  subject?: string;
+  explanation?: string;
 }
 
 export type PreviewDataType = {
