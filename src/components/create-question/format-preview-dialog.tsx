@@ -75,6 +75,7 @@ export default function FormatViewDialog({ children }: DialogPropType) {
                   {question.explanation && (
                     <p>Explanation (optional): {question.explanation}</p>
                   )}
+                  {question.subject && <p>Subject (optional): {question.subject}</p>}
                 </div>
               );
             })}

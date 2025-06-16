@@ -161,6 +161,7 @@ export const sampleQuestions = [
       "Mars appears reddish because of iron oxide prevalent on its surface.",
     statements: [],
     statementInstructions: "",
+    subject: "Indian Polity"
   },
   {
     id: 2,
@@ -202,6 +203,7 @@ export const sampleQuestions = [
     statementInstructions: "How many of the above statements is/are correct?",
     answer: "(c)",
     explanation: "Because c is correct.",
+    subject: "Indian History"
   },
 ];
 
