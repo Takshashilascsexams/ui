@@ -294,10 +294,10 @@ npm start
 
 Comprehensive API documentation is available in the `docs/api/` directory:
 
-- **[API Overview](./docs/api/README.md)** - Complete API reference
-- **[Authentication & Authorization](./docs/api/authentication-authorization.md)** - Auth implementation
-- **[Rate Limiting Strategy](./docs/api/rate-limiting-strategy.md)** - API protection
-- **[Caching Architecture](./docs/api/caching-architecture.md)** - Performance optimization
+- **[API Overview](https://github.com/Takshashilascsexams/server/blob/main/docs/api/README.md)** - Complete API reference
+- **[Authentication & Authorization](https://github.com/Takshashilascsexams/server/blob/main/docs/api/authentication-authorization.md)** - Auth implementation
+- **[Rate Limiting Strategy](https://github.com/Takshashilascsexams/server/blob/main/docs/api/rate-limiting-strategy.md)** - API protection
+- **[Caching Architecture](https://github.com/Takshashilascsexams/server/blob/main/docs/api/caching-architecture.md)** - Performance optimization
 
 ### **Key API Endpoints**
 - `GET /api/v1/exams/categorized` - Exam catalog
