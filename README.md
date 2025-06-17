@@ -165,7 +165,7 @@ The application will start on `http://localhost:3000`
 
 ### Backend Setup
 
-The backend server should be running separately. Refer to the [API Documentation](./docs/api/README.md) for backend setup instructions.
+The backend server should be running separately. Refer to the [API Documentation](https://github.com/Takshashilascsexams/server/blob/main/docs/api/README.md) for backend setup instructions.
 
 ## 📱 Application Routes
 
